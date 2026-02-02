@@ -17,12 +17,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+    
 
   # Ícones padrão estilo iOS
   cupertino_icons: ^1.0.8
 
   # Suporte a SVG (para usar ícones SVG)
-  flutter_svg: ^2.0.10
+  flutter_svg: ^2.2.3
 
 # ========================
 # 🧪 DEPENDÊNCIAS DE DEV
@@ -48,6 +49,7 @@ flutter:
   assets:
     # Pasta onde ficam seus ícones SVG
     - assets/icones/
+    - assets/imagens/
 
   # ========================
   # 🔤 FONTES

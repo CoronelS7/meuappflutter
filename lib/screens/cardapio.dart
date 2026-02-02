@@ -50,8 +50,8 @@ final List<Map<String, String>> acompanhamentos = [
   },
 ];
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class CardapioScreen extends StatelessWidget {
+  const CardapioScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -206,8 +206,6 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-
-                  
                 ],
               ),
             ),
@@ -259,5 +257,3 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-
-
