@@ -4,6 +4,8 @@ import 'package:meu_app_flutter/cores/app_colors.dart';
 
 import 'home.dart';
 import 'cardapio.dart';
+import 'carrinho.dart';
+import 'perfil.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -15,16 +17,45 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
+  // ✅ Só as telas que fazem parte da navbar (abas)
   final List<Widget> _screens = const [HomeScreen(), CardapioScreen()];
+
+  void _openCarrinho() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CarrinhoScreen()),
+    );
+  }
+
+  void _openPerfil() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PerfilScreen()),
+    );
+  }
 
   // ================= BOTTOM NAV =================
   Widget _buildBottomNav() {
     return BottomNavigationBar(
-      currentIndex: _currentIndex, // 🔴 IMPORTANTE
+      currentIndex: _currentIndex,
       onTap: (index) {
-        setState(() {
-          _currentIndex = index;
-        });
+        // ✅ index 0 e 1 são abas
+        if (index == 0 || index == 1) {
+          setState(() => _currentIndex = index);
+          return;
+        }
+
+        // ✅ Carrinho abre outra tela (sem navbar)
+        if (index == 2) {
+          _openCarrinho();
+          return;
+        }
+
+        // ✅ Perfil também abre outra tela (até você criar a aba)
+        if (index == 3) {
+          _openPerfil();
+          return;
+        }
       },
       selectedItemColor: AppColors.primary600,
       unselectedItemColor: AppColors.gray400,
@@ -60,7 +91,7 @@ class _MainNavigationState extends State<MainNavigation> {
             width: 32,
             height: 32,
             colorFilter: ColorFilter.mode(
-              _currentIndex == 2 ? AppColors.primary600 : AppColors.gray400,
+              AppColors.gray400, // como não é aba, fica "unselected"
               BlendMode.srcIn,
             ),
           ),
@@ -72,7 +103,7 @@ class _MainNavigationState extends State<MainNavigation> {
             width: 32,
             height: 32,
             colorFilter: ColorFilter.mode(
-              _currentIndex == 3 ? AppColors.primary600 : AppColors.gray400,
+              AppColors.gray400, // como não é aba, fica "unselected"
               BlendMode.srcIn,
             ),
           ),
