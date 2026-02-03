@@ -4,3 +4,6 @@ class Product {
 
   const Product({required this.name, required this.image});
 }
+
+
+

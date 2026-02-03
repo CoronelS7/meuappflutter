@@ -1,7 +1,9 @@
 import "package:flutter/material.dart";
 import "package:meu_app_flutter/cores/app_colors.dart";
 import "package:meu_app_flutter/data/produtos_data.dart";
+import "package:meu_app_flutter/models/product.dart";
 import "package:meu_app_flutter/widgets/product_card.dart";
+import "package:meu_app_flutter/screens/product_details_screen.dart";
 
 class CardapioScreen extends StatelessWidget {
   const CardapioScreen({super.key});
@@ -57,13 +59,11 @@ class CardapioScreen extends StatelessWidget {
                 builder: (context, constraints) {
                   final w = constraints.maxWidth;
 
-                  // ✅ largura do card (vale para todas as linhas horizontais)
-                  // Ajuste aqui se quiser mais largo/estreito
                   final double cardWidth = w < 480
                       ? w * 0.5
                       : w < 800
-                      ? w * 0.5
-                      : 280.0;
+                          ? w * 0.5
+                          : 280.0;
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,37 +72,32 @@ class CardapioScreen extends StatelessWidget {
                         title: 'Lanches',
                         items: lanches,
                         cardWidth: cardWidth,
-                        itemsPerRow: 6, // ✅ 6 por linha, depois vai para baixo
+                        itemsPerRow: 6,
                       ),
-
                       _ProductSection(
                         title: 'Acompanhamentos',
                         items: acompanhamentos,
                         cardWidth: cardWidth,
                         itemsPerRow: 6,
                       ),
-
                       _ProductSection(
                         title: 'Saudáveis',
                         items: saudaveis,
                         cardWidth: cardWidth,
                         itemsPerRow: 6,
                       ),
-
                       _ProductSection(
                         title: 'Sobremesas',
                         items: sobremesas,
                         cardWidth: cardWidth,
                         itemsPerRow: 6,
                       ),
-
                       _ProductSection(
                         title: 'Bebidas',
                         items: bebidas,
                         cardWidth: cardWidth,
                         itemsPerRow: 6,
                       ),
-
                       const SizedBox(height: 20),
                     ],
                   );
@@ -118,7 +113,7 @@ class CardapioScreen extends StatelessWidget {
 
 class _ProductSection extends StatelessWidget {
   final String title;
-  final List<Map<String, String>> items;
+  final List<Product> items;
   final double cardWidth;
   final int itemsPerRow;
 
@@ -129,12 +124,8 @@ class _ProductSection extends StatelessWidget {
     required this.itemsPerRow,
   });
 
-  // 🔪 Quebra a lista em pedaços de X itens (6, por exemplo)
-  List<List<Map<String, String>>> _chunk(
-    List<Map<String, String>> list,
-    int size,
-  ) {
-    final chunks = <List<Map<String, String>>>[];
+  List<List<Product>> _chunk(List<Product> list, int size) {
+    final chunks = <List<Product>>[];
     for (int i = 0; i < list.length; i += size) {
       final end = (i + size < list.length) ? i + size : list.length;
       chunks.add(list.sublist(i, end));
@@ -157,7 +148,6 @@ class _ProductSection extends StatelessWidget {
           ),
         ),
 
-        // ✅ Cada linha vira um carrossel horizontal
         for (int rowIndex = 0; rowIndex < rows.length; rowIndex++) ...[
           _CarouselRow(rowItems: rows[rowIndex], cardWidth: cardWidth),
           const SizedBox(height: 12),
@@ -168,7 +158,7 @@ class _ProductSection extends StatelessWidget {
 }
 
 class _CarouselRow extends StatelessWidget {
-  final List<Map<String, String>> rowItems;
+  final List<Product> rowItems;
   final double cardWidth;
 
   const _CarouselRow({required this.rowItems, required this.cardWidth});
@@ -176,7 +166,7 @@ class _CarouselRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 320, // altura do card + botão
+      height: 320,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -188,14 +178,22 @@ class _CarouselRow extends StatelessWidget {
           return SizedBox(
             width: cardWidth,
             child: ProductCard(
-              image: product['image']!,
-              name: product['name']!,
-              price: product['price']!,
+              image: product.image,
+              name: product.name,
+              price: product.price,
               onAdd: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("${product['name']} adicionado!"),
+                    content: Text("${product.name} adicionado!"),
                     duration: const Duration(milliseconds: 900),
+                  ),
+                );
+              },
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProductDetailsScreen(product: product),
                   ),
                 );
               },
