@@ -30,30 +30,28 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
   }
 
   String _formatBRL(double value) {
-    // Formata tipo 12.5 -> "12,50"
     final fixed = value.toStringAsFixed(2).replaceAll('.', ',');
     return 'R\$ $fixed';
   }
 
   void _clearCart() {
     setState(() {
-      CartData.items.clear();
+      // ✅ usa o método do CartData (atualiza badge)
+      CartData.clear();
     });
   }
 
   void _increaseQty(int index) {
     setState(() {
-      CartData.items[index].quantity++;
+      // ✅ usa o método do CartData (atualiza badge)
+      CartData.increase(index);
     });
   }
 
   void _decreaseQty(int index) {
     setState(() {
-      if (CartData.items[index].quantity > 1) {
-        CartData.items[index].quantity--;
-      } else {
-        CartData.items.removeAt(index);
-      }
+      // ✅ usa o método do CartData (atualiza badge)
+      CartData.decrease(index);
     });
   }
 
@@ -73,7 +71,10 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
             'assets/icones/arrow.svg',
             width: 24,
             height: 24,
-            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+            colorFilter: const ColorFilter.mode(
+              Colors.white,
+              BlendMode.srcIn,
+            ),
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -278,9 +279,8 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                   height: 48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isEmpty
-                          ? AppColors.gray300
-                          : AppColors.primary300,
+                      backgroundColor:
+                          isEmpty ? AppColors.gray300 : AppColors.primary300,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -288,7 +288,6 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                     onPressed: isEmpty
                         ? null
                         : () {
-                            // Finalizar pedido (lógica depois)
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text("Checkout em breve 😉"),
