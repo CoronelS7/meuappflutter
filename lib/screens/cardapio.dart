@@ -62,8 +62,8 @@ class CardapioScreen extends StatelessWidget {
                   final double cardWidth = w < 480
                       ? w * 0.5
                       : w < 800
-                          ? w * 0.5
-                          : 280.0;
+                      ? w * 0.5
+                      : 280.0;
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
