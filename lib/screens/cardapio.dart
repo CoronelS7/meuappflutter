@@ -5,6 +5,10 @@ import "package:meu_app_flutter/models/product.dart";
 import "package:meu_app_flutter/widgets/product_card.dart";
 import "package:meu_app_flutter/screens/product_details_screen.dart";
 
+// ✅ NOVOS IMPORTS
+import "package:meu_app_flutter/data/cart_data.dart";
+import "package:meu_app_flutter/screens/carrinho.dart";
+
 class CardapioScreen extends StatelessWidget {
   const CardapioScreen({super.key});
 
@@ -147,7 +151,6 @@ class _ProductSection extends StatelessWidget {
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
         ),
-
         for (int rowIndex = 0; rowIndex < rows.length; rowIndex++) ...[
           _CarouselRow(rowItems: rows[rowIndex], cardWidth: cardWidth),
           const SizedBox(height: 12),
@@ -181,14 +184,19 @@ class _CarouselRow extends StatelessWidget {
               image: product.image,
               name: product.name,
               price: product.price,
+
+              // ✅ ALTERADO: agora adiciona no carrinho e navega
               onAdd: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("${product.name} adicionado!"),
-                    duration: const Duration(milliseconds: 900),
+                CartData.addProduct(product);
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CarrinhoScreen(),
                   ),
                 );
               },
+
               onTap: () {
                 Navigator.push(
                   context,

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:meu_app_flutter/models/product.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
+import 'package:meu_app_flutter/data/cart_data.dart';
+import 'package:meu_app_flutter/screens/carrinho.dart';
 
 class ProductDetailsScreen extends StatelessWidget {
   final Product product;
@@ -17,17 +19,29 @@ class ProductDetailsScreen extends StatelessWidget {
 
       appBar: AppBar(
         backgroundColor: AppColors.primary300,
-        foregroundColor: Colors.white,
         elevation: 0,
+
+        // 👇 SVG no lugar da seta padrão
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: SvgPicture.asset(
+            'assets/icones/arrow.svg',
+            width: 28,
+            height: 28,
+            colorFilter: const ColorFilter.mode(
+              Colors.white,
+              BlendMode.srcIn,
+            ),
+          ),
+        ),
       ),
 
-      // 🔽 CONTEÚDO (rola normalmente)
+      // 🔽 CONTEÚDO
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 120), // espaço pro botão fixo
+        padding: const EdgeInsets.only(bottom: 140),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // IMAGEM (maior e responsiva)
             Image.asset(
               product.image,
               width: double.infinity,
@@ -40,7 +54,6 @@ class ProductDetailsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // NOME + PREÇO (lado a lado)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -58,7 +71,7 @@ class ProductDetailsScreen extends StatelessWidget {
                       const SizedBox(width: 12),
                       Text(
                         product.price,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
@@ -69,7 +82,6 @@ class ProductDetailsScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // DESCRIÇÃO
                   Text(
                     product.description,
                     style: const TextStyle(
@@ -85,10 +97,9 @@ class ProductDetailsScreen extends StatelessWidget {
         ),
       ),
 
-      // 🔥 BOTÃO FIXO EMBAIXO COM SVG
+      // 🔥 BOTÃO FIXO EMBAIXO
       bottomNavigationBar: Container(
-        height: 100, // 👈 ajuste a altura aqui
-        margin: EdgeInsets.symmetric(vertical: 30, horizontal: 0),
+        height: 100,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -104,10 +115,14 @@ class ProductDetailsScreen extends StatelessWidget {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("${product.name} adicionado!"),
-                  duration: const Duration(milliseconds: 900),
+              // ✅ 1) adiciona ao carrinho
+              CartData.addProduct(product);
+
+              // ✅ 2) navega para o carrinho (sem navbar)
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CarrinhoScreen(),
                 ),
               );
             },
@@ -123,7 +138,7 @@ class ProductDetailsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SvgPicture.asset(
-                  'assets/icones/store.svg', // 👈 troque pelo seu svg
+                  'assets/icones/store.svg',
                   width: 22,
                   height: 22,
                   colorFilter: const ColorFilter.mode(
@@ -134,7 +149,10 @@ class ProductDetailsScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 const Text(
                   'Adicionar ao carrinho',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
