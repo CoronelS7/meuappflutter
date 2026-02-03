@@ -12,7 +12,6 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: _buildBottomNav(),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,7 +170,7 @@ class HomeScreen extends StatelessWidget {
         style: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -186,48 +185,12 @@ class HomeScreen extends StatelessWidget {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.75,
+          childAspectRatio: 0.85,
         ),
         itemBuilder: (context, index) {
           return ProductCard(product: popularProducts[index]);
         },
       ),
-    );
-  }
-
-  // ================= BOTTOM NAV =================
-  Widget _buildBottomNav() {
-    return BottomNavigationBar(
-      selectedItemColor: AppColors.primary600,
-      unselectedItemColor: AppColors.gray400,
-      type: BottomNavigationBarType.fixed,
-      items: [
-        _navItem('Início', 'assets/icones/porta.svg'),
-        _navItem('Cardápio', 'assets/icones/cardapio.svg'),
-        _navItem('Carrinho', 'assets/icones/store.svg'),
-        _navItem('Perfil', 'assets/icones/profile.svg'),
-      ],
-    );
-  }
-
-  BottomNavigationBarItem _navItem(String label, String icon) {
-    return BottomNavigationBarItem(
-      icon: SvgPicture.asset(
-        icon,
-        width: 28,
-        height: 28,
-        colorFilter: const ColorFilter.mode(AppColors.gray400, BlendMode.srcIn),
-      ),
-      activeIcon: SvgPicture.asset(
-        icon,
-        width: 28,
-        height: 28,
-        colorFilter: const ColorFilter.mode(
-          AppColors.primary600,
-          BlendMode.srcIn,
-        ),
-      ),
-      label: label,
     );
   }
 }

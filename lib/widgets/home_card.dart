@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meu_app_flutter/cores/app_colors.dart';
 import '../models/product_model.dart';
 
 class ProductCard extends StatelessWidget {
@@ -13,7 +14,7 @@ class ProductCard extends StatelessWidget {
       children: [
         Expanded(
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(25),
             child: Image.asset(
               product.image,
               fit: BoxFit.cover,
@@ -26,15 +27,7 @@ class ProductCard extends StatelessWidget {
           product.name,
           style: const TextStyle(
             fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Text(
-          'R\$ ${product.price.toStringAsFixed(2)}',
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            color: Colors.green,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

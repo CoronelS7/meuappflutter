@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/home.dart';
+import 'package:meu_app_flutter/screens/main_navigation.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       // 🔤 Fonte definida AQUI para o app inteiro
       theme: ThemeData(fontFamily: 'Poppins'),
 
-      home: const HomeScreen(),
+      home: const MainNavigation(),
     );
   }
 }
