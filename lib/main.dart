@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import "package:flutter/material.dart";
 import 'package:meu_app_flutter/screens/main_navigation.dart';
 
 void main() {
@@ -13,10 +13,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Pedido Fácil',
-
-      // 🔤 Fonte definida AQUI para o app inteiro
+      // Fonte definida AQUI para o app inteiro
       theme: ThemeData(fontFamily: 'Poppins'),
-
       home: const MainNavigation(),
     );
   }

@@ -1,16 +1,16 @@
 final List<Map<String, String>> lanches = [
   {
-    'image': 'assets/imagens/humburger_simples.png',
+    'image': 'assets/imagens/hamburger_simples.png',
     'name': 'Hambúrguer Clássico',
     'price': 'R\$ 24,90',
   },
   {
-    'image': 'assets/imagens/humburger_bacon.png',
+    'image': 'assets/imagens/hamburger_bacon.png',
     'name': 'Hambúrguer com Bacon',
     'price': 'R\$ 29,90',
   },
   {
-    'image': 'assets/imagens/humburger_duplo.png',
+    'image': 'assets/imagens/hamburger_duplo.png',
     'name': 'Hambúrguer Duplo',
     'price': 'R\$ 32,00',
   },
@@ -25,7 +25,7 @@ final List<Map<String, String>> lanches = [
     'price': 'R\$ 18,50',
   },
   {
-    'image': 'assets/imagens/humburger_simples.png',
+    'image': 'assets/imagens/hamburger_simples.png',
     'name': 'X-Salada',
     'price': 'R\$ 26,00',
   },

@@ -4,19 +4,20 @@ class ProductCard extends StatelessWidget {
   final String image;
   final String name;
   final String price;
+  final VoidCallback onAdd;
 
   const ProductCard({
     super.key,
     required this.image,
     required this.name,
     required this.price,
+    required this.onAdd,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 230,
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 0),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -29,41 +30,70 @@ class ProductCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, // alinha à esquerda
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // FOTO
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: Image.asset(
               image,
               width: double.infinity,
-              height: 140,
+              height: 160,
               fit: BoxFit.cover,
+              // Evita crash se a imagem não existir ou falhar ao carregar
+              errorBuilder: (_, __, ___) => Container(
+                color: Colors.grey.shade200,
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.image_not_supported,
+                  color: Colors.grey,
+                ),
+              ),
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          // NOME
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
 
           const SizedBox(height: 6),
 
-          // PREÇO
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               price,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: Colors.green,
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onAdd,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text("Adicionar"),
               ),
             ),
           ),

@@ -1,54 +1,7 @@
 import "package:flutter/material.dart";
 import "package:meu_app_flutter/cores/app_colors.dart";
+import "package:meu_app_flutter/data/produtos_data.dart";
 import "package:meu_app_flutter/widgets/product_card.dart";
-import 'package:flutter_svg/flutter_svg.dart';
-
-final List<Map<String, String>> lanches = [
-  {
-    'image': 'assets/imagens/humberger_simples.png',
-    'name': 'Hambúrguer Clássico',
-    'price': 'R\$ 24,90',
-  },
-  {
-    'image': 'assets/imagens/humburger_bacon.png',
-    'name': 'Hambúrguer com Bacon',
-    'price': 'R\$ 29,90',
-  },
-  {
-    'image': 'assets/imagens/humburger_duplo.png',
-    'name': 'Hambúrguer Duplo',
-    'price': 'R\$ 32,00',
-  },
-  {
-    'image': 'assets/imagens/frango_empanado.png',
-    'name': 'Frango Empanado',
-    'price': 'R\$ 21,00',
-  },
-  {
-    'image': 'assets/imagens/hot_dog.png',
-    'name': 'Hot Dog Especial',
-    'price': 'R\$ 18,50',
-  },
-];
-
-final List<Map<String, String>> acompanhamentos = [
-  {
-    'image': 'assets/imagens/batata.png',
-    'name': 'Batata Frita',
-    'price': 'R\$ 12,00',
-  },
-  {
-    'image': 'assets/imagens/onion_rings.png',
-    'name': 'Onion Rings',
-    'price': 'R\$ 14,00',
-  },
-  {'image': 'assets/imagens/pudim.png', 'name': 'Pudim', 'price': 'R\$ 9,50'},
-  {
-    'image': 'assets/imagens/torta_de_limao.png',
-    'name': 'Torta de Limão',
-    'price': 'R\$ 15,50',
-  },
-];
 
 class CardapioScreen extends StatelessWidget {
   const CardapioScreen({super.key});
@@ -60,14 +13,9 @@ class CardapioScreen extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // HEADER
           Container(
-            height: 20,
-            decoration: BoxDecoration(color: AppColors.primary300),
-          ),
-
-          // HEADER (fixa no topo)
-          Container(
-            height: 120, // altura da header
+            height: MediaQuery.of(context).size.height * 0.16,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
               color: AppColors.primary300,
@@ -88,125 +36,77 @@ class CardapioScreen extends StatelessWidget {
               ],
             ),
             child: const SafeArea(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Cardápio',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                    ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Cardápio',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
+                ),
               ),
             ),
           ),
 
-          // CONTEÚDO COM SCROLL VERTICAL
+          // CONTEÚDO
           Expanded(
             child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-                    child: const Text(
-                      'Lanches',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final w = constraints.maxWidth;
 
-                  SizedBox(
-                    height: 260,
-                    child: ScrollConfiguration(
-                      behavior: const ScrollBehavior().copyWith(
-                        scrollbars: false,
-                      ),
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: lanches.length,
-                        itemBuilder: (context, index) {
-                          final product = lanches[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 12),
-                            child: ProductCard(
-                              image: product['image']!,
-                              name: product['name']!,
-                              price: product['price']!,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
+                  // ✅ largura do card (vale para todas as linhas horizontais)
+                  // Ajuste aqui se quiser mais largo/estreito
+                  final double cardWidth = w < 480
+                      ? w * 0.5
+                      : w < 800
+                      ? w * 0.5
+                      : 280.0;
 
-                  SizedBox(
-                    height: 260,
-                    child: ScrollConfiguration(
-                      behavior: const ScrollBehavior().copyWith(
-                        scrollbars: false,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _ProductSection(
+                        title: 'Lanches',
+                        items: lanches,
+                        cardWidth: cardWidth,
+                        itemsPerRow: 6, // ✅ 6 por linha, depois vai para baixo
                       ),
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: lanches.length,
-                        itemBuilder: (context, index) {
-                          final product = lanches[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 12),
-                            child: ProductCard(
-                              image: product['image']!,
-                              name: product['name']!,
-                              price: product['price']!,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
 
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
-                    child: const Text(
-                      'Acompanhamentos',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                      _ProductSection(
+                        title: 'Acompanhamentos',
+                        items: acompanhamentos,
+                        cardWidth: cardWidth,
+                        itemsPerRow: 6,
                       ),
-                    ),
-                  ),
 
-                  SizedBox(
-                    height: 260,
-                    child: ScrollConfiguration(
-                      behavior: const ScrollBehavior().copyWith(
-                        scrollbars: false,
+                      _ProductSection(
+                        title: 'Saudáveis',
+                        items: saudaveis,
+                        cardWidth: cardWidth,
+                        itemsPerRow: 6,
                       ),
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: acompanhamentos.length,
-                        itemBuilder: (context, index) {
-                          final product = acompanhamentos[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 12),
-                            child: ProductCard(
-                              image: product['image']!,
-                              name: product['name']!,
-                              price: product['price']!,
-                            ),
-                          );
-                        },
+
+                      _ProductSection(
+                        title: 'Sobremesas',
+                        items: sobremesas,
+                        cardWidth: cardWidth,
+                        itemsPerRow: 6,
                       ),
-                    ),
-                  ),
-                ],
+
+                      _ProductSection(
+                        title: 'Bebidas',
+                        items: bebidas,
+                        cardWidth: cardWidth,
+                        itemsPerRow: 6,
+                      ),
+
+                      const SizedBox(height: 20),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -214,46 +114,95 @@ class CardapioScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildBottomNav() {
-    return BottomNavigationBar(
-      selectedItemColor: AppColors.primary600,
-      unselectedItemColor: AppColors.gray400,
-      type: BottomNavigationBarType.fixed,
-      items: [
-        BottomNavigationBarItem(
-          icon: SvgPicture.asset(
-            'assets/icones/porta.svg',
-            width: 32,
-            height: 32,
+class _ProductSection extends StatelessWidget {
+  final String title;
+  final List<Map<String, String>> items;
+  final double cardWidth;
+  final int itemsPerRow;
+
+  const _ProductSection({
+    required this.title,
+    required this.items,
+    required this.cardWidth,
+    required this.itemsPerRow,
+  });
+
+  // 🔪 Quebra a lista em pedaços de X itens (6, por exemplo)
+  List<List<Map<String, String>>> _chunk(
+    List<Map<String, String>> list,
+    int size,
+  ) {
+    final chunks = <List<Map<String, String>>>[];
+    for (int i = 0; i < list.length; i += size) {
+      final end = (i + size < list.length) ? i + size : list.length;
+      chunks.add(list.sublist(i, end));
+    }
+    return chunks;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = _chunk(items, itemsPerRow);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
-          label: 'Inicio',
         ),
-        BottomNavigationBarItem(
-          icon: SvgPicture.asset(
-            'assets/icones/cardapio.svg',
-            width: 32,
-            height: 32,
-          ),
-          label: 'Cardápio',
-        ),
-        BottomNavigationBarItem(
-          icon: SvgPicture.asset(
-            'assets/icones/store.svg',
-            width: 32,
-            height: 32,
-          ),
-          label: 'Carrinho',
-        ),
-        BottomNavigationBarItem(
-          icon: SvgPicture.asset(
-            'assets/icones/profile.svg',
-            width: 32,
-            height: 32,
-          ),
-          label: 'Carrinho',
-        ),
+
+        // ✅ Cada linha vira um carrossel horizontal
+        for (int rowIndex = 0; rowIndex < rows.length; rowIndex++) ...[
+          _CarouselRow(rowItems: rows[rowIndex], cardWidth: cardWidth),
+          const SizedBox(height: 12),
+        ],
       ],
+    );
+  }
+}
+
+class _CarouselRow extends StatelessWidget {
+  final List<Map<String, String>> rowItems;
+  final double cardWidth;
+
+  const _CarouselRow({required this.rowItems, required this.cardWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 320, // altura do card + botão
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: rowItems.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final product = rowItems[index];
+
+          return SizedBox(
+            width: cardWidth,
+            child: ProductCard(
+              image: product['image']!,
+              name: product['name']!,
+              price: product['price']!,
+              onAdd: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("${product['name']} adicionado!"),
+                    duration: const Duration(milliseconds: 900),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 }

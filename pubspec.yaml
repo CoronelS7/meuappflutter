@@ -15,6 +15,8 @@ environment:
 # 📦 DEPENDÊNCIAS
 # ========================
 dependencies:
+
+
   flutter:
     sdk: flutter
     
@@ -24,6 +26,7 @@ dependencies:
 
   # Suporte a SVG (para usar ícones SVG)
   flutter_svg: ^2.2.3
+
 
 # ========================
 # 🧪 DEPENDÊNCIAS DE DEV
