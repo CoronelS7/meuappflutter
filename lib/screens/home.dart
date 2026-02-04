@@ -5,8 +5,27 @@ import 'package:meu_app_flutter/cores/app_colors.dart';
 import '../data/popular_products.dart';
 import '../widgets/home_card.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String? _categoriaSelecionada;
+
+  List produtosFiltrados() {
+    if (_categoriaSelecionada == null) {
+      return popularProducts;
+    }
+
+    return popularProducts.where((p) {
+      return p.name.toLowerCase().contains(
+        _categoriaSelecionada!.toLowerCase(),
+      );
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,21 +154,33 @@ class HomeScreen extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: categories.map((c) {
-                return Container(
-                  margin: const EdgeInsets.only(right: 8, top: 15),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.primary600),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    c,
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      color: AppColors.primary600,
+                final isSelected = _categoriaSelecionada == c;
+
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _categoriaSelecionada = isSelected ? null : c;
+                    });
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 8, top: 15),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary300
+                          : Colors.transparent,
+                      border: Border.all(color: AppColors.primary600),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      c,
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        color: isSelected ? Colors.white : AppColors.primary600,
+                      ),
                     ),
                   ),
                 );
@@ -161,13 +192,13 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ================= POPULARES =================
+  // ================= TÍTULO =================
   Widget _buildPopularTitle() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
-        'Populares',
-        style: TextStyle(
+        _categoriaSelecionada ?? 'Populares',
+        style: const TextStyle(
           fontFamily: 'Poppins',
           fontSize: 18,
           fontWeight: FontWeight.w500,
@@ -176,11 +207,28 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // ================= GRID =================
   Widget _buildPopularGrid() {
+    final lista = produtosFiltrados();
+
+    if (_categoriaSelecionada != null && lista.isEmpty) {
+      return Center(
+        child: Text(
+          'Nenhum item encontrado',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 16,
+            color: AppColors.gray400,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
-        itemCount: popularProducts.length,
+        itemCount: lista.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           mainAxisSpacing: 12,
@@ -188,7 +236,7 @@ class HomeScreen extends StatelessWidget {
           childAspectRatio: 0.85,
         ),
         itemBuilder: (context, index) {
-          return ProductCard(product: popularProducts[index]);
+          return ProductCard(product: lista[index]);
         },
       ),
     );
