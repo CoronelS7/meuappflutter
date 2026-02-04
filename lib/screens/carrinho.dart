@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
 import 'package:meu_app_flutter/data/cart_data.dart';
+import 'package:meu_app_flutter/screens/metodo_pagamento.dart';
 
 class CarrinhoScreen extends StatefulWidget {
   const CarrinhoScreen({super.key});
@@ -11,7 +12,9 @@ class CarrinhoScreen extends StatefulWidget {
 }
 
 class _CarrinhoScreenState extends State<CarrinhoScreen> {
-  // Converte "R$ 24,90" -> 24.90
+  MetodoPagamento? _metodoPagamento;
+
+  // ================= PREÇO =================
   double _parsePrice(String priceText) {
     final cleaned = priceText
         .replaceAll('R\$', '')
@@ -34,27 +37,37 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
     return 'R\$ $fixed';
   }
 
+  // ================= AÇÕES =================
   void _clearCart() {
     setState(() {
-      // ✅ usa o método do CartData (atualiza badge)
       CartData.clear();
     });
   }
 
   void _increaseQty(int index) {
     setState(() {
-      // ✅ usa o método do CartData (atualiza badge)
       CartData.increase(index);
     });
   }
 
   void _decreaseQty(int index) {
     setState(() {
-      // ✅ usa o método do CartData (atualiza badge)
       CartData.decrease(index);
     });
   }
 
+  String get _metodoPagamentoTexto {
+    switch (_metodoPagamento) {
+      case MetodoPagamento.googlePay:
+        return 'Google Pay';
+      case MetodoPagamento.pix:
+        return 'PIX';
+      default:
+        return 'Escolher >';
+    }
+  }
+
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     final isEmpty = CartData.items.isEmpty;
@@ -71,10 +84,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
             'assets/icones/arrow.svg',
             width: 24,
             height: 24,
-            colorFilter: const ColorFilter.mode(
-              Colors.white,
-              BlendMode.srcIn,
-            ),
+            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -85,7 +95,6 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
               'Limpar',
               style: TextStyle(
                 fontFamily: 'Poppins',
-                fontWeight: FontWeight.w400,
                 color: isEmpty ? Colors.white.withOpacity(0.6) : Colors.white,
               ),
             ),
@@ -109,7 +118,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                     ),
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    padding: const EdgeInsets.all(16),
                     itemCount: CartData.items.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
@@ -137,20 +146,9 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                                 width: 70,
                                 height: 70,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 70,
-                                  height: 70,
-                                  color: Colors.grey.shade200,
-                                  alignment: Alignment.center,
-                                  child: const Icon(
-                                    Icons.image_not_supported,
-                                    color: Colors.grey,
-                                  ),
-                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
-
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,7 +159,6 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       fontFamily: 'Poppins',
-                                      fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -170,16 +167,12 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                                     item.product.price,
                                     style: const TextStyle(
                                       fontFamily: 'Poppins',
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
                                       color: AppColors.gray700,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-
-                            // CONTADOR
                             Row(
                               children: [
                                 IconButton(
@@ -220,7 +213,6 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
               ],
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // TOTAL
                 Row(
@@ -247,28 +239,39 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
 
                 const SizedBox(height: 16),
 
-                // MÉTODO DE PAGAMENTO
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text(
-                      'Método Pagamento',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
+                // MÉTODO PAGAMENTO
+                InkWell(
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MetodoPagamentoScreen(),
                       ),
-                    ),
-                    Text(
-                      'Escolher >',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 16,
-                        color: AppColors.gray700,
-                        fontWeight: FontWeight.w500,
+                    );
+
+                    if (result != null) {
+                      setState(() {
+                        _metodoPagamento = result;
+                      });
+                    }
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Método Pagamento',
+                        style: TextStyle(fontFamily: 'Poppins'),
                       ),
-                    ),
-                  ],
+                      Text(
+                        _metodoPagamentoTexto,
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          color: AppColors.primary300,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
                 const SizedBox(height: 16),
@@ -279,19 +282,16 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                   height: 48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          isEmpty ? AppColors.gray300 : AppColors.primary300,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      backgroundColor: isEmpty
+                          ? AppColors.gray300
+                          : AppColors.primary300,
                     ),
                     onPressed: isEmpty
                         ? null
                         : () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text("Checkout em breve 😉"),
-                                duration: Duration(milliseconds: 900),
+                                content: Text('Checkout em breve 😉'),
                               ),
                             );
                           },
@@ -299,7 +299,6 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                       'Finalizar Pedido',
                       style: TextStyle(
                         fontFamily: 'Poppins',
-                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
