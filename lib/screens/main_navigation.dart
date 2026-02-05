@@ -19,10 +19,7 @@ class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
   // ✅ Só as telas que fazem parte da navbar (abas)
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    CardapioScreen(),
-  ];
+  final List<Widget> _screens = const [HomeScreen(), CardapioScreen()];
 
   void _openCarrinho() async {
     await Navigator.push(
