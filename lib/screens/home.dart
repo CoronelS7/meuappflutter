@@ -21,9 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return popularProducts.where((p) {
-      return p.name.toLowerCase().contains(
-        _categoriaSelecionada!.toLowerCase(),
-      );
+      return p.category == _categoriaSelecionada;
     }).toList();
   }
 
@@ -233,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.85,
+          childAspectRatio: 1,
         ),
         itemBuilder: (context, index) {
           return ProductCard(product: lista[index]);
