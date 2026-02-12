@@ -6,7 +6,8 @@ import 'package:meu_app_flutter/data/cart_data.dart';
 import 'home.dart';
 import 'cardapio.dart';
 import 'carrinho.dart';
-import 'perfil.dart';
+import 'perfil_tab.dart';
+
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -18,8 +19,12 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  // ✅ Só as telas que fazem parte da navbar (abas)
-  final List<Widget> _screens = const [HomeScreen(), CardapioScreen()];
+  // ✅ Agora PERFIL também é aba
+  final List<Widget> _screens = const [
+    HomeScreen(),
+    CardapioScreen(),
+    PerfilTab(),
+  ];
 
   void _openCarrinho() async {
     await Navigator.push(
@@ -27,25 +32,24 @@ class _MainNavigationState extends State<MainNavigation> {
       MaterialPageRoute(builder: (_) => const CarrinhoScreen()),
     );
 
-    // 🔁 ainda é útil para atualizar a aba atual, mas o badge já atualiza sozinho
+    // atualiza badge/estado quando voltar
     setState(() {});
-  }
-
-  void _openPerfil() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const PerfilScreen()),
-    );
   }
 
   // ================= BOTTOM NAV =================
   Widget _buildBottomNav() {
     return BottomNavigationBar(
-      currentIndex: _currentIndex,
+      currentIndex: _currentIndex == 2 ? 2 : _currentIndex, // (não precisa, mas ok)
       onTap: (index) {
-        // ✅ index 0 e 1 são abas
-        if (index == 0 || index == 1) {
-          setState(() => _currentIndex = index);
+        // ✅ Home
+        if (index == 0) {
+          setState(() => _currentIndex = 0);
+          return;
+        }
+
+        // ✅ Cardápio
+        if (index == 1) {
+          setState(() => _currentIndex = 1);
           return;
         }
 
@@ -55,9 +59,9 @@ class _MainNavigationState extends State<MainNavigation> {
           return;
         }
 
-        // ✅ Perfil abre fora da navbar
+        // ✅ Perfil agora é ABA (sem push)
         if (index == 3) {
-          _openPerfil();
+          setState(() => _currentIndex = 2); // 👈 2 pq Perfil é a 3ª tela da lista
           return;
         }
       },
@@ -93,7 +97,7 @@ class _MainNavigationState extends State<MainNavigation> {
           label: 'Cardápio',
         ),
 
-        // ================= CARRINHO (BADGE REATIVO) =================
+        // ================= CARRINHO (BADGE) =================
         BottomNavigationBarItem(
           icon: ValueListenableBuilder<int>(
             valueListenable: CartData.badgeCount,
@@ -110,8 +114,6 @@ class _MainNavigationState extends State<MainNavigation> {
                       BlendMode.srcIn,
                     ),
                   ),
-
-                  // 🔴 BADGE
                   if (count > 0)
                     Positioned(
                       right: -6,
@@ -151,8 +153,8 @@ class _MainNavigationState extends State<MainNavigation> {
             'assets/icones/profile.svg',
             width: 32,
             height: 32,
-            colorFilter: const ColorFilter.mode(
-              AppColors.gray400,
+            colorFilter: ColorFilter.mode(
+              _currentIndex == 2 ? AppColors.primary600 : AppColors.gray400,
               BlendMode.srcIn,
             ),
           ),
@@ -166,6 +168,7 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // ✅ Agora body troca entre 3 abas (0,1,2)
       body: _screens[_currentIndex],
       bottomNavigationBar: _buildBottomNav(),
     );
