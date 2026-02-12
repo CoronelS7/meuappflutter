@@ -25,6 +25,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # Suporte a SVG (para usar ícones SVG)
+
   flutter_svg: ^2.2.3
 
 
@@ -38,6 +39,13 @@ dev_dependencies:
   # Regras de boas práticas de código
   flutter_lints: ^6.0.0
 
+  flutter_native_splash: ^2.3.6
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/imagens/logo.png
+  android: true
+  ios: true
 # ========================
 # 🎨 CONFIGURAÇÕES FLUTTER
 # ========================

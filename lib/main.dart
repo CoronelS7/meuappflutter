@@ -1,5 +1,5 @@
 ﻿import "package:flutter/material.dart";
-import 'package:meu_app_flutter/screens/main_navigation.dart';
+import 'package:meu_app_flutter/screens/splash.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       title: 'Pedido Fácil',
       // Fonte definida AQUI para o app inteiro
       theme: ThemeData(fontFamily: 'Poppins'),
-      home: const MainNavigation(),
+      home: const SplashScreen(),
     );
   }
 }
