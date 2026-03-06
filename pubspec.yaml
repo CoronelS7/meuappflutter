@@ -27,7 +27,13 @@ dependencies:
   # Suporte a SVG (para usar ícones SVG)
 
   flutter_svg: ^2.2.3
-
+  
+  # 🔥 FIREBASE
+  firebase_core: ^3.6.0
+  cloud_firestore: ^5.4.4
+  firebase_auth: ^5.3.1
+  crypto: ^3.0.3
+  mask_text_input_formatter: ^2.9.0
 
 # ========================
 # 🧪 DEPENDÊNCIAS DE DEV
