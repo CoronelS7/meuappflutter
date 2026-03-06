@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
+import 'package:meu_app_flutter/models/product.dart';
+import 'package:meu_app_flutter/screens/product_details_screen.dart';
 import '../data/popular_products.dart';
 import '../widgets/home_card.dart';
 
@@ -14,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String? _categoriaSelecionada;
 
-  List produtosFiltrados() {
+  List<Product> produtosFiltrados() {
     if (_categoriaSelecionada == null) {
       return popularProducts;
     }
@@ -128,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final categories = [
       'Lanches',
       'Acompanhamentos',
-      'Saudáveis',
+      'Saudaveis',
       'Sobremesas',
       'Bebidas',
     ];
@@ -233,7 +235,19 @@ class _HomeScreenState extends State<HomeScreen> {
           childAspectRatio: 1,
         ),
         itemBuilder: (context, index) {
-          return ProductCard(product: lista[index]);
+          final product = lista[index];
+
+          return ProductCard(
+            product: product,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProductDetailsScreen(product: product),
+                ),
+              );
+            },
+          );
         },
       ),
     );
