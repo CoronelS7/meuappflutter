@@ -1,32 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
 
 class DadosContaScreen extends StatelessWidget {
   const DadosContaScreen({super.key});
 
+  Future<Map<String, dynamic>?> _buscarDados() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return null;
+
+    final doc = await FirebaseFirestore.instance
+        .collection("usuarios")
+        .doc(user.uid)
+        .get();
+
+    if (!doc.exists) return null;
+
+    return doc.data();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
 
-        // 🔹 SETA SVG PERSONALIZADA
         leading: IconButton(
           onPressed: () {
             Navigator.pop(context);
           },
           icon: SvgPicture.asset(
-            'assets/icones/arrow.svg', // seu svg aqui
+            'assets/icones/arrow.svg',
             width: 24,
             height: 24,
             colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
           ),
         ),
 
-        // 🔹 TÍTULO CENTRALIZADO
         centerTitle: true,
         title: const Text(
           'Editar Perfil',
@@ -39,82 +55,117 @@ class DadosContaScreen extends StatelessWidget {
         ),
       ),
 
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          children: [
-            const SizedBox(height: 30),
+      body: FutureBuilder(
+        future: _buscarDados(),
+        builder: (context, snapshot) {
 
-            // ✅ FOTO (NÍVEL 3) + BOTÃO EDITAR
-            Center(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.gray300, width: 3),
-                    ),
-                    child: const CircleAvatar(
-                      radius: 70,
-                      backgroundImage: AssetImage(
-                        'assets/imagens/pessoa_perfil.png',
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: () {
-                        // TODO: editar foto
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: AppColors.gray200,
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData) {
+            return const Center(
+              child: Text("Usuário não encontrado"),
+            );
+          }
+
+          final dados = snapshot.data!;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+
+                const SizedBox(height: 30),
+
+                /// FOTO
+                Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.gray300,
+                            width: 3,
+                          ),
                         ),
-                        child: SvgPicture.asset(
-                          'assets/icones/edit.svg', // seu svg aqui
-                          width: 18,
-                          height: 18,
-                          colorFilter: const ColorFilter.mode(
-                            Colors.white,
-                            BlendMode.srcIn,
+                        child: const CircleAvatar(
+                          radius: 70,
+                          backgroundImage: AssetImage(
+                            'assets/imagens/pessoa_perfil.png',
                           ),
                         ),
                       ),
-                    ),
+
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () {},
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: AppColors.gray200,
+                              shape: BoxShape.circle,
+                            ),
+                            child: SvgPicture.asset(
+                              'assets/icones/edit.svg',
+                              width: 18,
+                              height: 18,
+                              colorFilter: const ColorFilter.mode(
+                                Colors.white,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+
+                const SizedBox(height: 28),
+
+                /// NOME
+                _infoTile(
+                  label: 'Nome',
+                  value: dados["nome"] ?? "",
+                  onTap: () {},
+                ),
+
+                const SizedBox(height: 12),
+
+                /// EMAIL
+                _infoTile(
+                  label: 'Email',
+                  value: dados["email"] ?? "",
+                  onTap: () {},
+                ),
+
+                const SizedBox(height: 12),
+
+                /// TELEFONE
+                _infoTile(
+                  label: 'Telefone',
+                  value: dados["telefone"] ?? "",
+                  onTap: () {},
+                ),
+
+                const SizedBox(height: 12),
+
+                /// CPF
+                _infoTile(
+                  label: 'CPF',
+                  value: dados["cpf"] ?? "",
+                  onTap: () {},
+                ),
+              ],
             ),
-
-            const SizedBox(height: 28),
-
-            // ✅ LISTA (igual print)
-            _infoTile(label: 'Nome', value: 'Jose Silva', onTap: () {}),
-            const SizedBox(height: 12),
-
-            _infoTile(
-              label: 'Email',
-              value: 'josedasilva@gmail.com',
-              onTap: () {},
-            ),
-            const SizedBox(height: 12),
-
-            _infoTile(
-              label: 'Telefone',
-              value: '(11) 99090-9090',
-              onTap: () {},
-            ),
-            const SizedBox(height: 12),
-
-            _infoTile(label: 'CPF', value: '928.123.432-12', onTap: () {}),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -127,18 +178,22 @@ class DadosContaScreen extends StatelessWidget {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(12),
+
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
+
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.shade300),
           ),
+
           child: Row(
             children: [
-              // label (esquerda)
+
               Expanded(
                 child: Text(
                   label,
@@ -150,7 +205,6 @@ class DadosContaScreen extends StatelessWidget {
                 ),
               ),
 
-              // value (direita)
               Text(
                 value,
                 style: const TextStyle(
