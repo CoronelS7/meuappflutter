@@ -18,12 +18,13 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  final GlobalKey<NavigatorState> _perfilNavKey = GlobalKey<NavigatorState>();
 
   // ✅ Agora PERFIL também é aba
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    CardapioScreen(),
-    PerfilTab(),
+  late final List<Widget> _screens = [
+    const HomeScreen(),
+    const CardapioScreen(),
+    PerfilTab(navigatorKey: _perfilNavKey),
   ];
 
   void _openCarrinho() async {
@@ -167,10 +168,30 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // ✅ Agora body troca entre 3 abas (0,1,2)
-      body: _screens[_currentIndex],
-      bottomNavigationBar: _buildBottomNav(),
+    return WillPopScope(
+      onWillPop: () async {
+        // Se estiver na aba de perfil e a pilha interna puder fazer pop, faça isso primeiro
+        if (_currentIndex == 2 &&
+            _perfilNavKey.currentState != null &&
+            _perfilNavKey.currentState!.canPop()) {
+          _perfilNavKey.currentState!.pop();
+          return false; // não fechar app
+        }
+
+        // Se não estiver na aba inicial, volte para ela em vez de fechar o app
+        if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+          return false;
+        }
+
+        // Senão permite fechar o app
+        return true;
+      },
+      child: Scaffold(
+        // ✅ Agora body troca entre 3 abas (0,1,2)
+        body: _screens[_currentIndex],
+        bottomNavigationBar: _buildBottomNav(),
+      ),
     );
   }
 }
