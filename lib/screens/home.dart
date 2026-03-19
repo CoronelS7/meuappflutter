@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:diacritic/diacritic.dart';
+
 import 'package:meu_app_flutter/cores/app_colors.dart';
+import 'package:meu_app_flutter/data/notificacoes_data.dart';
 import 'package:meu_app_flutter/models/product.dart';
+import 'package:meu_app_flutter/screens/notificacoes_screen.dart';
 import 'package:meu_app_flutter/screens/product_details_screen.dart';
 import '../data/popular_products.dart';
 import '../widgets/home_card.dart';
@@ -15,14 +19,30 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String? _categoriaSelecionada;
+  String _busca = '';
+
+  // 🔥 FUNÇÃO PARA NORMALIZAR TEXTO (remove acento + lowercase)
+  String normalizar(String texto) {
+    return removeDiacritics(texto).toLowerCase().trim();
+  }
 
   List<Product> produtosFiltrados() {
-    if (_categoriaSelecionada == null) {
-      return popularProducts;
-    }
+    final buscaNormalizada = normalizar(_busca);
 
     return popularProducts.where((p) {
-      return p.category == _categoriaSelecionada;
+      final nome = normalizar(p.name);
+      final categoria = normalizar(p.category);
+
+      final matchCategoria = _categoriaSelecionada == null
+          ? true
+          : categoria == normalizar(_categoriaSelecionada!);
+
+      final matchBusca = buscaNormalizada.isEmpty
+          ? true
+          : nome.contains(buscaNormalizada) ||
+                categoria.contains(buscaNormalizada);
+
+      return matchCategoria && matchBusca;
     }).toList();
   }
 
@@ -86,18 +106,70 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              SvgPicture.asset(
-                'assets/icones/notifications.svg',
-                width: 30,
-                height: 30,
-                colorFilter: const ColorFilter.mode(
-                  Colors.white,
-                  BlendMode.srcIn,
+              InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NotificacoesScreen(),
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: NotificacoesData.unreadListenable,
+                    builder: (context, unreadCount, child) {
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          SvgPicture.asset(
+                            'assets/icones/notifications.svg',
+                            width: 30,
+                            height: 30,
+                            colorFilter: const ColorFilter.mode(
+                              Colors.white,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                          if (unreadCount > 0)
+                            Positioned(
+                              right: -6,
+                              top: -6,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                constraints: const BoxConstraints(
+                                  minWidth: 18,
+                                  minHeight: 18,
+                                ),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    unreadCount > 99 ? '99+' : '$unreadCount',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 22),
+
+          // 🔍 BUSCA
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
@@ -105,6 +177,11 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _busca = value;
+                });
+              },
               decoration: InputDecoration(
                 icon: SvgPicture.asset(
                   'assets/icones/search.svg',
@@ -133,6 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'Saudaveis',
       'Sobremesas',
       'Bebidas',
+      'Combos',
     ];
 
     return Padding(
@@ -193,6 +271,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ================= TÍTULO =================
   Widget _buildPopularTitle() {
+    if (_busca.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Text(
+          'Resultados para "$_busca"',
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
@@ -210,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildPopularGrid() {
     final lista = produtosFiltrados();
 
-    if (_categoriaSelecionada != null && lista.isEmpty) {
+    if (lista.isEmpty) {
       return Center(
         child: Text(
           'Nenhum item encontrado',

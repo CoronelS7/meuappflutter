@@ -5,18 +5,16 @@ class CartItem {
   final Product product;
   int quantity;
 
-  CartItem({
-    required this.product,
-    this.quantity = 1,
-  });
+  CartItem({required this.product, this.quantity = 1});
 }
 
 class CartData {
   static final List<CartItem> items = [];
 
-  // 🔔 Notificador do total de itens (badge)
+  // 🔔 Notificador do badge
   static final ValueNotifier<int> badgeCount = ValueNotifier<int>(0);
 
+  // ================= TOTAL =================
   static int get totalItems {
     int total = 0;
     for (final item in items) {
@@ -29,6 +27,7 @@ class CartData {
     badgeCount.value = totalItems;
   }
 
+  // ================= ADICIONAR =================
   static void addProduct(Product product) {
     final index = items.indexWhere((item) => item.product.name == product.name);
 
@@ -37,25 +36,35 @@ class CartData {
     } else {
       items.add(CartItem(product: product));
     }
+
     _syncBadge();
   }
 
-  static void clear() {
-    items.clear();
-    _syncBadge();
-  }
-
+  // ================= AUMENTAR =================
   static void increase(int index) {
     items[index].quantity++;
     _syncBadge();
   }
 
+  // ================= DIMINUIR =================
   static void decrease(int index) {
     if (items[index].quantity > 1) {
       items[index].quantity--;
     } else {
-      items.removeAt(index);
+      remove(index);
     }
+    _syncBadge();
+  }
+
+  // ================= REMOVER (🔥 NOVO) =================
+  static void remove(int index) {
+    items.removeAt(index);
+    _syncBadge();
+  }
+
+  // ================= LIMPAR =================
+  static void clear() {
+    items.clear();
     _syncBadge();
   }
 }

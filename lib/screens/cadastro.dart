@@ -160,13 +160,16 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
       await user.updateDisplayName(nome);
 
-      await FirebaseFirestore.instance.collection("usuarios").doc(user.uid).set({
-        "uid": user.uid,
-        "nome": nome,
-        "email": email,
-        "telefone": telefone,
-        "criado_em": FieldValue.serverTimestamp(),
-      });
+      await FirebaseFirestore.instance
+          .collection("usuarios")
+          .doc(user.uid)
+          .set({
+            "uid": user.uid,
+            "nome": nome,
+            "email": email,
+            "telefone": telefone,
+            "criado_em": FieldValue.serverTimestamp(),
+          });
 
       _mostrarMensagem("Cadastro realizado com sucesso!", Colors.green);
       await Future.delayed(const Duration(seconds: 2));
@@ -198,6 +201,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
