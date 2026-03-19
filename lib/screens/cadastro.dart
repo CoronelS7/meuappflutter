@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,6 +21,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
   final _emailCtrl = TextEditingController();
   final _senhaCtrl = TextEditingController();
   final _telefoneCtrl = TextEditingController();
+  final _cpfCtrl = TextEditingController();
   final _confirmarSenhaCtrl = TextEditingController();
   final _nomeCtrl = TextEditingController();
 
@@ -39,9 +41,14 @@ class _CadastroScreenState extends State<CadastroScreen> {
     _emailCtrl.dispose();
     _senhaCtrl.dispose();
     _telefoneCtrl.dispose();
+    _cpfCtrl.dispose();
     _confirmarSenhaCtrl.dispose();
     _nomeCtrl.dispose();
     super.dispose();
+  }
+
+  String _somenteNumeros(String valor) {
+    return valor.replaceAll(RegExp(r'\D'), '');
   }
 
   void _mostrarMensagem(String texto, Color cor) {
@@ -111,15 +118,22 @@ class _CadastroScreenState extends State<CadastroScreen> {
     final nome = _nomeCtrl.text.trim();
     final email = _emailCtrl.text.trim().toLowerCase();
     final telefone = _telefoneCtrl.text.trim();
+    final cpf = _somenteNumeros(_cpfCtrl.text.trim());
     final senha = _senhaCtrl.text.trim();
     final confirmarSenha = _confirmarSenhaCtrl.text.trim();
 
     if (nome.isEmpty ||
         email.isEmpty ||
         telefone.isEmpty ||
+        cpf.isEmpty ||
         senha.isEmpty ||
         confirmarSenha.isEmpty) {
       _mostrarMensagem("Preencha todos os campos.", Colors.red);
+      return;
+    }
+
+    if (cpf.length != 11) {
+      _mostrarMensagem("CPF invalido. Digite 11 numeros.", Colors.red);
       return;
     }
 
@@ -168,6 +182,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
             "nome": nome,
             "email": email,
             "telefone": telefone,
+            "cpf": cpf,
             "criado_em": FieldValue.serverTimestamp(),
           });
 
@@ -256,6 +271,20 @@ class _CadastroScreenState extends State<CadastroScreen> {
                         controller: _telefoneCtrl,
                         hint: "Digite seu telefone",
                         asset: "assets/icones/phone.svg",
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      _buildLabel("CPF"),
+                      _buildInput(
+                        controller: _cpfCtrl,
+                        hint: "Digite seu CPF",
+                        asset: "assets/icones/conta.svg",
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(11),
+                        ],
                       ),
 
                       const SizedBox(height: 15),
@@ -421,6 +450,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
     bool obscure = false,
     Widget? suffix,
     Function(String)? onChanged,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -431,6 +462,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
         controller: controller,
         obscureText: obscure,
         onChanged: onChanged,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         decoration: InputDecoration(
           prefixIcon: Padding(
             padding: const EdgeInsets.all(14),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -72,6 +73,7 @@ class PaymentMethodsException implements Exception {
 
 class PaymentMethodsService {
   const PaymentMethodsService();
+  static const Duration _requestTimeout = Duration(seconds: 6);
 
   Future<List<SavedPaymentMethod>> listSavedCards({
     required String customerKey,
@@ -80,7 +82,15 @@ class PaymentMethodsService {
       '${StripeConfig.backendBaseUrl}/payment-methods',
     ).replace(queryParameters: {'customerKey': customerKey});
 
-    final response = await http.get(uri);
+    late final http.Response response;
+    try {
+      response = await http.get(uri).timeout(_requestTimeout);
+    } on TimeoutException {
+      throw const PaymentMethodsException(
+        'A consulta dos cartoes demorou muito. Tente novamente.',
+      );
+    }
+
     final payload = _decodeJson(response.body);
     if (response.statusCode != 200) {
       throw PaymentMethodsException(
@@ -107,11 +117,20 @@ class PaymentMethodsService {
   Future<CustomerSheetSession> createCustomerSheetSession({
     required String customerKey,
   }) async {
-    final response = await http.post(
-      Uri.parse('${StripeConfig.backendBaseUrl}/customer-sheet'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'customerKey': customerKey}),
-    );
+    late final http.Response response;
+    try {
+      response = await http
+          .post(
+            Uri.parse('${StripeConfig.backendBaseUrl}/customer-sheet'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'customerKey': customerKey}),
+          )
+          .timeout(_requestTimeout);
+    } on TimeoutException {
+      throw const PaymentMethodsException(
+        'A abertura do gerenciador de cartoes demorou muito.',
+      );
+    }
 
     final payload = _decodeJson(response.body);
     if (response.statusCode != 200) {
@@ -138,9 +157,13 @@ class PaymentMethodsService {
       return const {};
     }
 
-    final decoded = jsonDecode(source);
-    if (decoded is Map<String, dynamic>) {
-      return Map<String, Object?>.from(decoded);
+    try {
+      final decoded = jsonDecode(source);
+      if (decoded is Map<String, dynamic>) {
+        return Map<String, Object?>.from(decoded);
+      }
+    } catch (_) {
+      return const {};
     }
 
     return const {};

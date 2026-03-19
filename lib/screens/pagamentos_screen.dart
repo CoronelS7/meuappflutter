@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -38,7 +40,8 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
 
     try {
       final customerKey = await _customerIdentityService
-          .getOrCreateCustomerKey();
+          .getOrCreateCustomerKey()
+          .timeout(const Duration(seconds: 4));
       final cards = await _paymentMethodsService.listSavedCards(
         customerKey: customerKey,
       );
@@ -49,6 +52,16 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
 
       setState(() {
         _cards = cards;
+        _isLoading = false;
+      });
+    } on TimeoutException {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage =
+            'A consulta de pagamentos demorou muito. URL atual: ${StripeConfig.backendBaseUrl}';
         _isLoading = false;
       });
     } on PaymentMethodsException catch (error) {
@@ -182,7 +195,8 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
                 icon: Icons.error_outline,
                 iconColor: AppColors.error,
                 title: _errorMessage!,
-                subtitle: 'Verifique o backend Stripe e tente novamente.',
+                subtitle:
+                    'Se estiver em celular real, use o IP da sua maquina (ex.: 192.168.x.x:4242).',
                 actionLabel: 'Tentar novamente',
                 onAction: _loadCards,
               )
@@ -190,7 +204,7 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
               _messageCard(
                 icon: Icons.credit_card_off_outlined,
                 iconColor: AppColors.gray400,
-                title: 'Nenhum cartao salvo ainda',
+                title: 'Voce ainda nao possui cartoes salvos',
                 subtitle:
                     'Use o checkout ou o botao abaixo para adicionar o primeiro cartao.',
               )

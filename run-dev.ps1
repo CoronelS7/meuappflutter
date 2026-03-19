@@ -80,6 +80,26 @@ function Test-BackendHealth {
   }
 }
 
+function Wait-BackendHealth {
+  param(
+    [string]$HealthUrl,
+    [int]$TimeoutSeconds = 20,
+    [int]$IntervalMilliseconds = 1000
+  )
+
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+
+  while ((Get-Date) -lt $deadline) {
+    if (Test-BackendHealth $HealthUrl) {
+      return $true
+    }
+
+    Start-Sleep -Milliseconds $IntervalMilliseconds
+  }
+
+  return $false
+}
+
 function Test-BackendSecretConfigured {
   param([string]$EnvFilePath)
 
@@ -179,13 +199,12 @@ else {
     -PassThru
 
   $startedBackend = $true
-  Start-Sleep -Seconds 2
 
   if ($backendProcess.HasExited) {
     throw "Backend encerrou ao iniciar. Veja $stdoutLog e $stderrLog."
   }
 
-  if (-not (Test-BackendHealth $healthUrl)) {
+  if (-not (Wait-BackendHealth -HealthUrl $healthUrl -TimeoutSeconds 25)) {
     if (-not $backendProcess.HasExited) {
       Stop-Process -Id $backendProcess.Id -Force
     }

@@ -7,7 +7,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:meu_app_flutter/cores/app_colors.dart';
 import 'package:meu_app_flutter/data/cart_data.dart';
+import 'package:meu_app_flutter/data/endereco_usuario_data.dart';
 import 'package:meu_app_flutter/data/notificacoes_data.dart';
+import 'package:meu_app_flutter/screens/enderecos_screen.dart';
 import 'package:meu_app_flutter/screens/login.dart';
 import 'package:meu_app_flutter/screens/metodo_pagamento.dart';
 import 'package:meu_app_flutter/stripe/checkout_service.dart';
@@ -32,6 +34,9 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
   bool _saveCard = false;
   bool _isProcessingCheckout = false;
   bool _isLogado = false;
+  static const int _acaoEnderecoCancelar = 0;
+  static const int _acaoEnderecoAlterar = 1;
+  static const int _acaoEnderecoConfirmar = 2;
 
   @override
   void initState() {
@@ -167,6 +172,102 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
     });
   }
 
+  Future<void> _mostrarDialogoPedidoFinalizado() async {
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 74,
+                    height: 74,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      color: AppColors.primary600,
+                      size: 44,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Pedido finalizado com sucesso!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.gray700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Seu pedido foi enviado e ja esta nas suas notificacoes.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 14,
+                      color: AppColors.gray500,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary300,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text(
+                        'OK',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _irParaLogin() async {
     await Navigator.push(
       context,
@@ -202,6 +303,275 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
     });
   }
 
+  Future<EnderecoUsuario?> _garantirEnderecoParaCheckout() async {
+    var endereco = await EnderecoUsuarioData.buscarEnderecoPadrao();
+    if (!mounted) {
+      return null;
+    }
+
+    if (endereco != null) {
+      return endereco;
+    }
+
+    final irParaEndereco = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.location_on_outlined,
+                    color: AppColors.primary600,
+                    size: 30,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Endereco necessario',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.gray700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Para finalizar o pedido, adicione um endereco de entrega.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    color: AppColors.gray500,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.gray300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(color: AppColors.gray600),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary300,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        child: const Text(
+                          'Adicionar',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (irParaEndereco != true) {
+      return null;
+    }
+
+    if (!mounted) {
+      return null;
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const EnderecosScreen()),
+    );
+
+    if (!mounted) {
+      return null;
+    }
+
+    endereco = await EnderecoUsuarioData.buscarEnderecoPadrao();
+    return endereco;
+  }
+
+  Future<int?> _showDialogConfirmarEndereco(EnderecoUsuario endereco) {
+    return showDialog<int>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.home_work_outlined,
+                    color: AppColors.primary600,
+                    size: 30,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Confirme o endereco',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.gray700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  endereco.resumoPedido,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    color: AppColors.gray500,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.gray300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () =>
+                            Navigator.pop(dialogContext, _acaoEnderecoAlterar),
+                        child: const Text(
+                          'Alterar',
+                          style: TextStyle(color: AppColors.gray600),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary300,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(
+                          dialogContext,
+                          _acaoEnderecoConfirmar,
+                        ),
+                        child: const Text(
+                          'Confirmar',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () =>
+                      Navigator.pop(dialogContext, _acaoEnderecoCancelar),
+                  child: const Text(
+                    'Fechar',
+                    style: TextStyle(color: AppColors.gray500),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<EnderecoUsuario?> _confirmarEnderecoParaCheckout(
+    EnderecoUsuario endereco,
+  ) async {
+    var enderecoAtual = endereco;
+
+    while (mounted) {
+      final acao = await _showDialogConfirmarEndereco(enderecoAtual);
+      if (!mounted) {
+        return null;
+      }
+
+      if (acao == _acaoEnderecoConfirmar) {
+        return enderecoAtual;
+      }
+
+      if (acao == _acaoEnderecoAlterar) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const EnderecosScreen()),
+        );
+        if (!mounted) {
+          return null;
+        }
+
+        final atualizado = await EnderecoUsuarioData.buscarEnderecoPadrao();
+        if (atualizado == null) {
+          _showSnackBar('Adicione um endereco para continuar.');
+          return null;
+        }
+
+        enderecoAtual = atualizado;
+        continue;
+      }
+
+      return null;
+    }
+
+    return null;
+  }
+
   Future<void> _handleCheckout() async {
     if (CartData.items.isEmpty || _isProcessingCheckout) {
       return;
@@ -229,6 +599,21 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
       return;
     }
 
+    final endereco = await _garantirEnderecoParaCheckout();
+    if (!mounted) {
+      return;
+    }
+
+    if (endereco == null) {
+      _showSnackBar('Confirme um endereco antes de finalizar o pedido.');
+      return;
+    }
+
+    final enderecoConfirmado = await _confirmarEnderecoParaCheckout(endereco);
+    if (!mounted || enderecoConfirmado == null) {
+      return;
+    }
+
     final totalPedido = _total;
     final itensPedido = _buildNotificationItems();
 
@@ -237,7 +622,8 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
     });
 
     try {
-      final customerKey = await _customerIdentityService.getOrCreateCustomerKey();
+      final customerKey = await _customerIdentityService
+          .getOrCreateCustomerKey();
       await _checkoutService.startCheckout(
         customerKey: customerKey,
         saveCard: _saveCard,
@@ -261,7 +647,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
         _metodoPagamentoResumo = null;
         _saveCard = false;
       });
-      _showSnackBar('Pagamento concluido com sucesso.');
+      await _mostrarDialogoPedidoFinalizado();
     } on StripeException catch (error) {
       _showSnackBar(
         error.error.localizedMessage ?? 'Pagamento cancelado pelo usuario.',
@@ -491,8 +877,8 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                       loginRequired
                           ? 'Entrar para finalizar'
                           : canCheckout
-                              ? 'Finalizar Pedido'
-                              : 'Finalizar Pedido',
+                          ? 'Finalizar Pedido'
+                          : 'Finalizar Pedido',
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w700,
