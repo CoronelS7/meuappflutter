@@ -587,8 +587,8 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
       return;
     }
 
-    if (_metodoPagamento != MetodoPagamento.cartao) {
-      _showSnackBar('Somente cartao via Stripe esta integrado no momento.');
+    if (_metodoPagamento == MetodoPagamento.pix) {
+      _showSnackBar('PIX ainda nao esta integrado neste checkout.');
       return;
     }
 
@@ -626,9 +626,12 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
           .getOrCreateCustomerKey();
       await _checkoutService.startCheckout(
         customerKey: customerKey,
-        saveCard: _saveCard,
+        saveCard: _metodoPagamento == MetodoPagamento.cartao && _saveCard,
         amountInCents: _amountInCents,
         description: _checkoutDescription,
+        paymentMethod: _metodoPagamento == MetodoPagamento.googlePay
+            ? CheckoutPaymentMethod.googlePay
+            : CheckoutPaymentMethod.card,
       );
 
       if (!mounted) {

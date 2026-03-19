@@ -1,6 +1,8 @@
 param(
   [string]$PublishableKey,
   [string]$BackendUrl,
+  [string]$DeviceId,
+  [switch]$UseLocalIp,
   [switch]$ShowConfigOnly,
   [Parameter(ValueFromRemainingArguments = $true)]
   [string[]]$FlutterArgs
@@ -59,6 +61,63 @@ function Get-PortFromUrl {
   }
 
   return 4242
+}
+
+function Get-LocalIPv4Address {
+  $privateIps = New-Object System.Collections.Generic.List[string]
+  $otherIps = New-Object System.Collections.Generic.List[string]
+
+  function Add-Ipv4Candidate {
+    param([string]$IpAddress)
+
+    if ([string]::IsNullOrWhiteSpace($IpAddress)) {
+      return
+    }
+
+    if ($IpAddress -like '127.*' -or $IpAddress -like '169.254.*') {
+      return
+    }
+
+    if (
+      $IpAddress -like '10.*' -or
+      $IpAddress -like '192.168.*' -or
+      $IpAddress -match '^172\.(1[6-9]|2[0-9]|3[0-1])\.'
+    ) {
+      $privateIps.Add($IpAddress)
+      return
+    }
+
+    $otherIps.Add($IpAddress)
+  }
+
+  $candidates = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+    Where-Object {
+      $_.IPAddress -notlike '127.*' -and
+      $_.IPAddress -notlike '169.254.*' -and
+      $_.PrefixOrigin -ne 'WellKnown'
+    } |
+    Sort-Object InterfaceIndex, SkipAsSource
+
+  foreach ($candidate in $candidates) {
+    Add-Ipv4Candidate -IpAddress $candidate.IPAddress
+  }
+
+  $ipconfigOutput = ipconfig 2>$null
+  foreach ($line in $ipconfigOutput) {
+    if ($line -match 'IPv4[^:]*:\s*(?<ip>\d+\.\d+\.\d+\.\d+)') {
+      Add-Ipv4Candidate -IpAddress $matches.ip
+    }
+  }
+
+  if ($privateIps.Count -gt 0) {
+    return $privateIps[0]
+  }
+
+  if ($otherIps.Count -gt 0) {
+    return $otherIps[0]
+  }
+
+  return $null
 }
 
 function Test-PortListening {
@@ -140,6 +199,16 @@ if ([string]::IsNullOrWhiteSpace($BackendUrl)) {
 if ([string]::IsNullOrWhiteSpace($BackendUrl) -and $launchDefines.ContainsKey('STRIPE_BACKEND_URL')) {
   $BackendUrl = $launchDefines['STRIPE_BACKEND_URL']
 }
+
+if ($UseLocalIp -and -not $PSBoundParameters.ContainsKey('BackendUrl')) {
+  $localIp = Get-LocalIPv4Address
+  if ([string]::IsNullOrWhiteSpace($localIp)) {
+    throw 'Nao foi possivel detectar um IPv4 local para usar no celular.'
+  }
+
+  $BackendUrl = "http://${localIp}:4242"
+}
+
 if ([string]::IsNullOrWhiteSpace($BackendUrl)) {
   $BackendUrl = 'http://10.0.2.2:4242'
 }
@@ -220,6 +289,10 @@ $flutterCommandArgs = @(
   "--dart-define=STRIPE_PUBLISHABLE_KEY=$PublishableKey"
   "--dart-define=STRIPE_BACKEND_URL=$BackendUrl"
 )
+
+if (-not [string]::IsNullOrWhiteSpace($DeviceId)) {
+  $flutterCommandArgs += @('-d', $DeviceId)
+}
 
 if ((Get-ItemCount $FlutterArgs) -gt 0) {
   $flutterCommandArgs += $FlutterArgs

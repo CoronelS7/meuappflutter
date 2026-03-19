@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
 import 'package:meu_app_flutter/screens/pagamentos_screen.dart';
+import 'package:meu_app_flutter/stripe/checkout_service.dart';
 import 'package:meu_app_flutter/stripe/customer_identity_service.dart';
 import 'package:meu_app_flutter/stripe/payment_methods_service.dart';
+import 'package:meu_app_flutter/stripe/stripe_config.dart';
 
 enum MetodoPagamento { googlePay, pix, cartao }
 
@@ -21,6 +23,7 @@ class MetodoPagamentoScreen extends StatefulWidget {
 }
 
 class _MetodoPagamentoScreenState extends State<MetodoPagamentoScreen> {
+  final CheckoutService _checkoutService = const CheckoutService();
   final CustomerIdentityService _customerIdentityService =
       CustomerIdentityService();
   final PaymentMethodsService _paymentMethodsService =
@@ -29,11 +32,14 @@ class _MetodoPagamentoScreenState extends State<MetodoPagamentoScreen> {
   MetodoPagamento? _metodoSelecionado;
   List<SavedPaymentMethod> _savedCards = const [];
   bool _isLoadingCards = true;
+  bool _isLoadingGooglePay = true;
+  bool _googlePayAvailable = false;
 
   @override
   void initState() {
     super.initState();
     _loadSavedCards();
+    _loadGooglePayAvailability();
   }
 
   Future<void> _loadSavedCards() async {
@@ -66,6 +72,25 @@ class _MetodoPagamentoScreenState extends State<MetodoPagamentoScreen> {
         _isLoadingCards = false;
       });
     }
+  }
+
+  Future<void> _loadGooglePayAvailability() async {
+    setState(() {
+      _isLoadingGooglePay = true;
+    });
+
+    final isAvailable = await _checkoutService.isGooglePaySupported();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _googlePayAvailable = isAvailable;
+      _isLoadingGooglePay = false;
+      if (_metodoSelecionado == MetodoPagamento.googlePay && !isAvailable) {
+        _metodoSelecionado = null;
+      }
+    });
   }
 
   Future<void> _openPaymentsScreen() async {
@@ -110,6 +135,22 @@ class _MetodoPagamentoScreenState extends State<MetodoPagamentoScreen> {
       case MetodoPagamento.cartao:
         return _savedCards.isEmpty ? 'Cartao' : _cartaoResumo;
     }
+  }
+
+  String get _googlePaySubtitle {
+    if (!StripeConfig.isStripeConfigured) {
+      return 'Configure a chave publica da Stripe';
+    }
+
+    if (_isLoadingGooglePay) {
+      return 'Verificando disponibilidade no aparelho';
+    }
+
+    if (_googlePayAvailable) {
+      return 'Pagamento rapido pelo Google';
+    }
+
+    return 'Indisponivel neste aparelho';
   }
 
   String _brandLabel(String brand) {
@@ -171,9 +212,10 @@ class _MetodoPagamentoScreenState extends State<MetodoPagamentoScreen> {
             const SizedBox(height: 16),
             _paymentOption(
               title: 'Google Pay',
-              subtitle: 'Pagamento rapido pelo Google',
+              subtitle: _googlePaySubtitle,
               icon: Icons.payment,
               value: MetodoPagamento.googlePay,
+              enabled: _googlePayAvailable,
             ),
             _paymentOption(
               title: 'PIX',
@@ -265,30 +307,40 @@ class _MetodoPagamentoScreenState extends State<MetodoPagamentoScreen> {
     required String subtitle,
     required IconData icon,
     required MetodoPagamento value,
+    bool enabled = true,
   }) {
+    final isSelected = _metodoSelecionado == value;
+    final borderColor = isSelected
+        ? AppColors.primary300
+        : AppColors.gray300;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () {
-          setState(() {
-            _metodoSelecionado = value;
-          });
-        },
+        onTap: enabled
+            ? () {
+                setState(() {
+                  _metodoSelecionado = value;
+                });
+              }
+            : null,
         child: Container(
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             border: Border.all(
-              color: _metodoSelecionado == value
-                  ? AppColors.primary300
-                  : AppColors.gray300,
+              color: enabled ? borderColor : AppColors.gray300,
             ),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             children: [
-              Icon(icon, size: 28),
+              Icon(
+                icon,
+                size: 28,
+                color: enabled ? Colors.black : AppColors.gray400,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -297,25 +349,32 @@ class _MetodoPagamentoScreenState extends State<MetodoPagamentoScreen> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w500,
+                        color: enabled ? Colors.black : AppColors.gray400,
                       ),
                     ),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12,
-                        color: AppColors.gray400,
+                        color: enabled ? AppColors.gray400 : AppColors.gray500,
                       ),
                     ),
                   ],
                 ),
               ),
-              Radio<MetodoPagamento>(
-                value: value,
-                activeColor: AppColors.primary300,
+              IgnorePointer(
+                ignoring: !enabled,
+                child: Opacity(
+                  opacity: enabled ? 1 : 0.45,
+                  child: Radio<MetodoPagamento>(
+                    value: value,
+                    activeColor: AppColors.primary300,
+                  ),
+                ),
               ),
             ],
           ),

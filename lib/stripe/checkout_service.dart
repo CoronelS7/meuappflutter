@@ -15,14 +15,34 @@ class CheckoutException implements Exception {
   String toString() => message;
 }
 
+enum CheckoutPaymentMethod { card, googlePay }
+
 class CheckoutService {
   const CheckoutService();
+
+  Future<bool> isGooglePaySupported() async {
+    if (!StripeConfig.isStripeConfigured || !StripeConfig.isAndroid) {
+      return false;
+    }
+
+    try {
+      return await Stripe.instance.isPlatformPaySupported(
+        googlePay: IsGooglePaySupportedParams(
+          testEnv: StripeConfig.googlePayUsesTestEnvironment,
+          existingPaymentMethodRequired: false,
+        ),
+      );
+    } catch (_) {
+      return false;
+    }
+  }
 
   Future<void> startCheckout({
     required String customerKey,
     required bool saveCard,
     required int amountInCents,
     required String description,
+    required CheckoutPaymentMethod paymentMethod,
   }) async {
     final session = await _createPaymentIntent(
       customerKey: customerKey,
@@ -31,6 +51,17 @@ class CheckoutService {
       description: description,
     );
 
+    switch (paymentMethod) {
+      case CheckoutPaymentMethod.card:
+        await _startCardCheckout(session);
+        return;
+      case CheckoutPaymentMethod.googlePay:
+        await _startGooglePayCheckout(session);
+        return;
+    }
+  }
+
+  Future<void> _startCardCheckout(_CheckoutSession session) async {
     await Stripe.instance.initPaymentSheet(
       paymentSheetParameters: SetupPaymentSheetParameters(
         merchantDisplayName: 'Pedido Facil',
@@ -43,6 +74,27 @@ class CheckoutService {
     );
 
     await Stripe.instance.presentPaymentSheet();
+  }
+
+  Future<void> _startGooglePayCheckout(_CheckoutSession session) async {
+    if (!StripeConfig.isAndroid) {
+      throw const CheckoutException(
+        'Google Pay esta disponivel somente no Android neste app.',
+      );
+    }
+
+    await Stripe.instance.confirmPlatformPayPaymentIntent(
+      clientSecret: session.clientSecret,
+      confirmParams: PlatformPayConfirmParams.googlePay(
+        googlePay: GooglePayParams(
+          merchantName: 'Pedido Facil',
+          merchantCountryCode: StripeConfig.googlePayMerchantCountryCode,
+          currencyCode: StripeConfig.googlePayCurrencyCode,
+          testEnv: StripeConfig.googlePayUsesTestEnvironment,
+          isEmailRequired: true,
+        ),
+      ),
+    );
   }
 
   Future<_CheckoutSession> _createPaymentIntent({

@@ -9,6 +9,7 @@ dotenv.config();
 
 const secretKey = process.env.STRIPE_SECRET_KEY;
 const port = Number(process.env.PORT || 4242);
+const host = process.env.HOST || '0.0.0.0';
 const stripeApiVersion = process.env.STRIPE_API_VERSION || '2024-06-20';
 const customerStorePath = path.join(__dirname, 'customer-store.json');
 
@@ -270,6 +271,6 @@ app.post('/customer-sheet', async (request, response) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Stripe backend listening on http://localhost:${port}`);
+app.listen(port, host, () => {
+  console.log(`Stripe backend listening on http://${host}:${port}`);
 });
