@@ -27,6 +27,13 @@ class PerfilScreen extends StatelessWidget {
     return doc.data();
   }
 
+  Map<String, dynamic> _dadosFallback(User user) {
+    return {
+      'nome': (user.displayName ?? '').trim(),
+      'email': (user.email ?? '').trim(),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
 
@@ -38,13 +45,15 @@ class PerfilScreen extends StatelessWidget {
         child: FutureBuilder(
           future: _buscarUsuario(),
           builder: (context, snapshot) {
+            final dadosUsuario = user == null
+                ? null
+                : snapshot.data ?? _dadosFallback(user);
 
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   const SizedBox(height: 40),
 
                   /// 👤 PERFIL
@@ -61,14 +70,14 @@ class PerfilScreen extends StatelessWidget {
                       const SizedBox(width: 20),
 
                       /// SE USUÁRIO LOGADO
-                      if (user != null && snapshot.hasData)
+                      if (dadosUsuario != null)
 
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
 
                             Text(
-                              snapshot.data!["nome"] ?? "",
+                              dadosUsuario["nome"] ?? "",
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -79,7 +88,7 @@ class PerfilScreen extends StatelessWidget {
                             const SizedBox(height: 2),
 
                             Text(
-                              snapshot.data!["email"] ?? "",
+                              dadosUsuario["email"] ?? "",
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.black54,

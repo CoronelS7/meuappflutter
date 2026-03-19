@@ -11,6 +11,7 @@ import 'package:meu_app_flutter/data/endereco_usuario_data.dart';
 import 'package:meu_app_flutter/data/notificacoes_data.dart';
 import 'package:meu_app_flutter/screens/enderecos_screen.dart';
 import 'package:meu_app_flutter/screens/login.dart';
+import 'package:meu_app_flutter/screens/main_navigation.dart';
 import 'package:meu_app_flutter/screens/metodo_pagamento.dart';
 import 'package:meu_app_flutter/stripe/checkout_service.dart';
 import 'package:meu_app_flutter/stripe/customer_identity_service.dart';
@@ -172,10 +173,10 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
     });
   }
 
-  Future<void> _mostrarDialogoPedidoFinalizado() async {
-    if (!mounted) return;
+  Future<bool> _mostrarDialogoPedidoFinalizado() async {
+    if (!mounted) return false;
 
-    await showDialog<void>(
+    final shouldGoHome = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) {
@@ -248,7 +249,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                         ),
                         elevation: 0,
                       ),
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => Navigator.of(context).pop(true),
                       child: const Text(
                         'OK',
                         style: TextStyle(
@@ -266,6 +267,8 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
         );
       },
     );
+
+    return shouldGoHome ?? false;
   }
 
   Future<void> _irParaLogin() async {
@@ -650,7 +653,13 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
         _metodoPagamentoResumo = null;
         _saveCard = false;
       });
-      await _mostrarDialogoPedidoFinalizado();
+      final shouldGoHome = await _mostrarDialogoPedidoFinalizado();
+      if (shouldGoHome && mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainNavigation()),
+          (route) => false,
+        );
+      }
     } on StripeException catch (error) {
       _showSnackBar(
         error.error.localizedMessage ?? 'Pagamento cancelado pelo usuario.',

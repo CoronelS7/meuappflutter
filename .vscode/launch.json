@@ -8,7 +8,7 @@
       "program": "lib/main.dart",
       "toolArgs": [
         "--dart-define",
-        "STRIPE_PUBLISHABLE_KEY=pk_test_51T7feJJKRPbMWbDHvcKll1DipZVEaqKylzmtQAsqdLUqrSrehE4t2epb2r0bP8hqBmPXtCh2cMQLUWfc3i0uIXxk00I65lDQ5F",
+        "STRIPE_PUBLISHABLE_KEY=",
         "--dart-define",
         "STRIPE_BACKEND_URL=http://192.168.15.3:4242"
       ]
@@ -20,7 +20,7 @@
       "program": "lib/main.dart",
       "toolArgs": [
         "--dart-define",
-        "STRIPE_PUBLISHABLE_KEY=pk_test_51T7feJJKRPbMWbDHvcKll1DipZVEaqKylzmtQAsqdLUqrSrehE4t2epb2r0bP8hqBmPXtCh2cMQLUWfc3i0uIXxk00I65lDQ5F",
+        "STRIPE_PUBLISHABLE_KEY=",
         "--dart-define",
         "STRIPE_BACKEND_URL=http://10.0.2.2:4242"
       ]

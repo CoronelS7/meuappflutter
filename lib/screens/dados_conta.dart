@@ -22,6 +22,18 @@ class DadosContaScreen extends StatelessWidget {
     return doc.data();
   }
 
+  Map<String, dynamic>? _dadosFallback() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    return {
+      'nome': (user.displayName ?? '').trim(),
+      'email': (user.email ?? '').trim(),
+      'telefone': '',
+      'cpf': '',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,18 +70,17 @@ class DadosContaScreen extends StatelessWidget {
       body: FutureBuilder(
         future: _buscarDados(),
         builder: (context, snapshot) {
+          final dados = snapshot.data ?? _dadosFallback();
 
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData) {
+          if (dados == null) {
             return const Center(
               child: Text("Usuário não encontrado"),
             );
           }
-
-          final dados = snapshot.data!;
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),

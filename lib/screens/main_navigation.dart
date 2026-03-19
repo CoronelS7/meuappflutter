@@ -28,13 +28,18 @@ class _MainNavigationState extends State<MainNavigation> {
   ];
 
   void _openCarrinho() async {
-    await Navigator.push(
+    final shouldGoHome = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => const CarrinhoScreen()),
     );
 
-    // atualiza badge/estado quando voltar
-    setState(() {});
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _currentIndex = shouldGoHome == true ? 0 : _currentIndex;
+    });
   }
 
   // ================= BOTTOM NAV =================

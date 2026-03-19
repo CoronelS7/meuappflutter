@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
 import 'package:meu_app_flutter/screens/cadastro.dart';
@@ -78,6 +79,24 @@ class _LoginScreenState extends State<LoginScreen> {
     _mostrarMensagem('Erro ao fazer login.', Colors.red);
   }
 
+  Future<void> _garantirDocumentoUsuario(User user) async {
+    final docRef = FirebaseFirestore.instance.collection('usuarios').doc(user.uid);
+    final doc = await docRef.get();
+    if (doc.exists) {
+      return;
+    }
+
+    await docRef.set({
+      'uid': user.uid,
+      'nome': user.displayName ?? '',
+      'email': user.email ?? '',
+      'telefone': '',
+      'cpf': '',
+      'criado_em': FieldValue.serverTimestamp(),
+      'atualizado_em': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<void> _loginUsuario() async {
     final email = _emailCtrl.text.trim().toLowerCase();
     final senha = _senhaCtrl.text.trim();
@@ -99,10 +118,18 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: senha,
       );
+      final user = cred.user;
+      if (user != null) {
+        try {
+          await _garantirDocumentoUsuario(user);
+        } on FirebaseException {
+          // Login ja foi concluido; se o Firestore falhar, a UI usa fallback.
+        }
+      }
 
       if (!mounted) return;
 
