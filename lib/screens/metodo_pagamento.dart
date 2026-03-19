@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
-import 'package:meu_app_flutter/screens/adicionar_cartao.dart';
+import 'package:meu_app_flutter/screens/pagamentos_screen.dart';
+import 'package:meu_app_flutter/stripe/customer_identity_service.dart';
+import 'package:meu_app_flutter/stripe/payment_methods_service.dart';
 
 enum MetodoPagamento { googlePay, pix, cartao }
+
+class MetodoPagamentoSelecao {
+  const MetodoPagamentoSelecao({required this.metodo, required this.resumo});
+
+  final MetodoPagamento metodo;
+  final String resumo;
+}
 
 class MetodoPagamentoScreen extends StatefulWidget {
   const MetodoPagamentoScreen({super.key});
@@ -12,15 +21,118 @@ class MetodoPagamentoScreen extends StatefulWidget {
 }
 
 class _MetodoPagamentoScreenState extends State<MetodoPagamentoScreen> {
+  final CustomerIdentityService _customerIdentityService =
+      CustomerIdentityService();
+  final PaymentMethodsService _paymentMethodsService =
+      const PaymentMethodsService();
+
   MetodoPagamento? _metodoSelecionado;
-  CartaoModel? _cartaoSalvo;
+  List<SavedPaymentMethod> _savedCards = const [];
+  bool _isLoadingCards = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCards();
+  }
+
+  Future<void> _loadSavedCards() async {
+    setState(() {
+      _isLoadingCards = true;
+    });
+
+    try {
+      final customerKey = await _customerIdentityService
+          .getOrCreateCustomerKey();
+      final cards = await _paymentMethodsService.listSavedCards(
+        customerKey: customerKey,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _savedCards = cards;
+        _isLoadingCards = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _savedCards = const [];
+        _isLoadingCards = false;
+      });
+    }
+  }
+
+  Future<void> _openPaymentsScreen() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PagamentosScreen()),
+    );
+
+    await _loadSavedCards();
+    if (!mounted || _savedCards.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _metodoSelecionado = MetodoPagamento.cartao;
+    });
+  }
+
+  String get _cartaoResumo {
+    if (_isLoadingCards) {
+      return 'Carregando cartoes salvos';
+    }
+
+    if (_savedCards.isEmpty) {
+      return 'Cartao com Stripe PaymentSheet';
+    }
+
+    final defaultCard = _savedCards.firstWhere(
+      (card) => card.isDefault,
+      orElse: () => _savedCards.first,
+    );
+
+    return '${_brandLabel(defaultCard.brand)} **** ${defaultCard.last4}';
+  }
+
+  String _resumoMetodoSelecionado(MetodoPagamento metodo) {
+    switch (metodo) {
+      case MetodoPagamento.googlePay:
+        return 'Google Pay';
+      case MetodoPagamento.pix:
+        return 'PIX';
+      case MetodoPagamento.cartao:
+        return _savedCards.isEmpty ? 'Cartao' : _cartaoResumo;
+    }
+  }
+
+  String _brandLabel(String brand) {
+    final normalized = brand.toLowerCase();
+    if (normalized.isEmpty || normalized == 'card') {
+      return 'Cartao';
+    }
+
+    if (normalized == 'mastercard') {
+      return 'Mastercard';
+    }
+
+    if (normalized == 'visa') {
+      return 'Visa';
+    }
+
+    return normalized[0].toUpperCase() + normalized.substring(1);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
-      // ================= APP BAR =================
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -35,133 +147,119 @@ class _MetodoPagamentoScreenState extends State<MetodoPagamentoScreen> {
           ),
         ],
       ),
-
-      // ================= BODY =================
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Método de Pagamento',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
+      body: RadioGroup<MetodoPagamento>(
+        groupValue: _metodoSelecionado,
+        onChanged: (selected) {
+          setState(() {
+            _metodoSelecionado = selected;
+          });
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Metodo de Pagamento',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
-
-          const SizedBox(height: 16),
-
-          _paymentOption(
-            title: 'Google Pay',
-            subtitle: 'GooglePay',
-            icon: Icons.payment,
-            value: MetodoPagamento.googlePay,
-          ),
-
-          _paymentOption(
-            title: 'PIX',
-            subtitle: 'Pagamento instantâneo',
-            icon: Icons.qr_code,
-            value: MetodoPagamento.pix,
-          ),
-
-          // ================= CARTÃO =================
-          if (_cartaoSalvo != null)
+            const SizedBox(height: 16),
             _paymentOption(
-              title: 'Cartão',
-              subtitle:
-                  '**** ${_cartaoSalvo!.numero.substring(_cartaoSalvo!.numero.length - 4)}',
+              title: 'Google Pay',
+              subtitle: 'Pagamento rapido pelo Google',
+              icon: Icons.payment,
+              value: MetodoPagamento.googlePay,
+            ),
+            _paymentOption(
+              title: 'PIX',
+              subtitle: 'Pagamento instantaneo',
+              icon: Icons.qr_code,
+              value: MetodoPagamento.pix,
+            ),
+            _paymentOption(
+              title: 'Cartao',
+              subtitle: _cartaoResumo,
               icon: Icons.credit_card,
               value: MetodoPagamento.cartao,
             ),
-
-          // ================= ADICIONAR CARTÃO =================
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () async {
-                final cartao = await Navigator.push<CartaoModel>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AdicionarCartaoScreen(),
-                  ),
-                );
-
-                if (cartao != null) {
-                  setState(() {
-                    _cartaoSalvo = cartao;
-                    _metodoSelecionado = MetodoPagamento.cartao;
-                  });
-                }
-              },
-              child: Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.gray500),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add),
-                    SizedBox(width: 8),
-                    Text(
-                      'Adicionar cartão',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          const Spacer(),
-
-          // ================= BOTÃO SELECIONAR =================
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary300,
-                  shape: RoundedRectangleBorder(
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: _openPaymentsScreen,
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.gray500),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                ),
-                onPressed: _metodoSelecionado == null
-                    ? null
-                    : () {
-                        Navigator.pop(context, _metodoSelecionado);
-                      },
-                child: const Text(
-                  'Selecionar',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add),
+                      SizedBox(width: 8),
+                      Text(
+                        'Adicionar cartao',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 38),
-        ],
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary300,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: _metodoSelecionado == null
+                      ? null
+                      : () {
+                          final metodo = _metodoSelecionado!;
+                          Navigator.pop(
+                            context,
+                            MetodoPagamentoSelecao(
+                              metodo: metodo,
+                              resumo: _resumoMetodoSelecionado(metodo),
+                            ),
+                          );
+                        },
+                  child: const Text(
+                    'Selecionar',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 38),
+          ],
+        ),
       ),
     );
   }
 
-  // ================= ITEM DE PAGAMENTO =================
   Widget _paymentOption({
     required String title,
     required String subtitle,
@@ -217,13 +315,7 @@ class _MetodoPagamentoScreenState extends State<MetodoPagamentoScreen> {
               ),
               Radio<MetodoPagamento>(
                 value: value,
-                groupValue: _metodoSelecionado,
                 activeColor: AppColors.primary300,
-                onChanged: (val) {
-                  setState(() {
-                    _metodoSelecionado = val;
-                  });
-                },
               ),
             ],
           ),

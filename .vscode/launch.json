@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter Android com Stripe",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define",
+        "STRIPE_SECRET_KEY=your_stripe_secret_key_here",
+        "--dart-define",
+        "STRIPE_BACKEND_URL=http://10.0.2.2:4242"
+      ]
+    }
+  ]
+}

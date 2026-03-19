@@ -1,30 +1,35 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:meu_app_flutter/main.dart';
+import 'package:meu_app_flutter/data/cart_data.dart';
+import 'package:meu_app_flutter/models/product.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  setUp(() {
+    CartData.clear();
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  tearDown(() {
+    CartData.clear();
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('CartData badgeCount acompanha a quantidade total de itens', () {
+    const product = Product(
+      image: 'assets/imagens/hamburger_simples.png',
+      name: 'Hamburguer Simples',
+      price: 'R\$ 12,50',
+      description: 'Item de teste',
+      category: 'Lanches',
+    );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    CartData.addProduct(product);
+    CartData.addProduct(product);
+
+    expect(CartData.items, hasLength(1));
+    expect(CartData.items.first.quantity, 2);
+    expect(CartData.badgeCount.value, 2);
+
+    CartData.decrease(0);
+
+    expect(CartData.items.first.quantity, 1);
+    expect(CartData.badgeCount.value, 1);
   });
 }
