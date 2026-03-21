@@ -94,12 +94,15 @@ class _EnderecosScreenState extends State<EnderecosScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (sheetContext) {
-        final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
+        final mediaQuery = MediaQuery.of(sheetContext);
+        final bottomInset = mediaQuery.viewInsets.bottom;
+        final sheetHeight = mediaQuery.size.height - mediaQuery.padding.top - 12;
 
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -155,216 +158,236 @@ class _EnderecosScreenState extends State<EnderecosScreen> {
               }
             }
 
-            return Padding(
-              padding: EdgeInsets.fromLTRB(20, 18, 20, bottomInset + 20),
-              child: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary100,
-                          border: Border.all(color: AppColors.primary200),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.flash_on_rounded,
-                              color: AppColors.primary600,
-                              size: 18,
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(bottom: bottomInset),
+              child: SizedBox(
+                height: sheetHeight,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 42,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.black12,
+                              borderRadius: BorderRadius.circular(999),
                             ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Digite o CEP para preencher automaticamente.',
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primary600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Center(
-                        child: Container(
-                          width: 42,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.black12,
-                            borderRadius: BorderRadius.circular(999),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        inicial == null
-                            ? 'Adicionar endereco'
-                            : 'Editar endereco',
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _campoEndereco(
-                        controller: cepCtrl,
-                        label: 'CEP',
-                        validator: (value) {
-                          final digits = _somenteDigitos(value ?? '');
-                          if (digits.isEmpty) return 'Campo obrigatorio';
-                          if (digits.length != 8) return 'CEP invalido';
-                          return null;
-                        },
-                        keyboardType: TextInputType.number,
-                        maxLength: 8,
-                        onChanged: onCepChanged,
-                        helperText: erroCep,
-                        suffixIcon: buscandoCep
-                            ? const Padding(
-                                padding: EdgeInsets.all(14),
-                                child: SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            keyboardDismissBehavior:
+                                ScrollViewKeyboardDismissBehavior.onDrag,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary100,
+                                    border: Border.all(
+                                      color: AppColors.primary200,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.flash_on_rounded,
+                                        color: AppColors.primary600,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Digite o CEP para preencher automaticamente.',
+                                          style: TextStyle(
+                                            fontFamily: 'Poppins',
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.primary600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              )
-                            : IconButton(
-                                onPressed: () => onCepChanged(cepCtrl.text),
-                                icon: const Icon(
-                                  Icons.search_rounded,
-                                  color: AppColors.primary500,
+                                const SizedBox(height: 16),
+                                Text(
+                                  inicial == null
+                                      ? 'Adicionar endereco'
+                                      : 'Editar endereco',
+                                  style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              ),
-                      ),
-                      const SizedBox(height: 10),
-                      _campoEndereco(
-                        controller: ruaCtrl,
-                        label: 'Endereco',
-                        validator: _validarObrigatorio,
-                        readOnly: true,
-                      ),
-                      const SizedBox(height: 10),
-                      _campoEndereco(
-                        controller: bairroCtrl,
-                        label: 'Bairro',
-                        validator: _validarObrigatorio,
-                        readOnly: true,
-                      ),
-                      const SizedBox(height: 10),
-                      _campoEndereco(
-                        controller: estadoCtrl,
-                        label: 'UF',
-                        validator: _validarObrigatorio,
-                        readOnly: true,
-                      ),
-                      const SizedBox(height: 10),
-                      _campoEndereco(
-                        controller: cidadeCtrl,
-                        label: 'Cidade',
-                        validator: _validarObrigatorio,
-                        readOnly: true,
-                      ),
-                      const SizedBox(height: 10),
-                      _campoEndereco(
-                        controller: numeroCtrl,
-                        label: 'Numero',
-                        validator: _validarObrigatorio,
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 10),
-                      _campoEndereco(
-                        controller: complementoCtrl,
-                        label: 'Complemento',
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary300,
-                          ),
-                          onPressed: () async {
-                            if (buscandoCep) {
-                              _mostrarMensagem(
-                                'Aguarde a consulta do CEP terminar.',
-                                erro: true,
-                              );
-                              return;
-                            }
-
-                            if (!(formKey.currentState?.validate() ?? false)) {
-                              return;
-                            }
-
-                            final endereco = EnderecoUsuario(
-                              id: inicial?.id ?? '',
-                              rua: ruaCtrl.text.trim(),
-                              numero: numeroCtrl.text.trim(),
-                              bairro: bairroCtrl.text.trim(),
-                              cidade: cidadeCtrl.text.trim(),
-                              estado: estadoCtrl.text.trim().toUpperCase(),
-                              cep: _somenteDigitos(cepCtrl.text.trim()),
-                              complemento: complementoCtrl.text.trim(),
-                              padrao: inicial?.padrao ?? false,
-                            );
-
-                            try {
-                              if (inicial == null) {
-                                await EnderecoUsuarioData.salvarNovoEndereco(
-                                  endereco,
-                                );
-                              } else {
-                                await EnderecoUsuarioData.atualizarEndereco(
-                                  inicial.id,
-                                  endereco,
-                                );
-                              }
-
-                              if (!sheetContext.mounted || !mounted) return;
-                              Navigator.pop(sheetContext);
-                              _mostrarMensagem(
-                                inicial == null
-                                    ? 'Endereco adicionado com sucesso.'
-                                    : 'Endereco atualizado com sucesso.',
-                              );
-                            } catch (_) {
-                              if (!mounted) return;
-                              _mostrarMensagem(
-                                'Nao foi possivel salvar o endereco.',
-                                erro: true,
-                              );
-                            }
-                          },
-                          child: Text(
-                            inicial == null
-                                ? 'Salvar endereco'
-                                : 'Atualizar endereco',
-                            style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                                const SizedBox(height: 16),
+                                _campoEndereco(
+                                  controller: cepCtrl,
+                                  label: 'CEP',
+                                  validator: (value) {
+                                    final digits = _somenteDigitos(value ?? '');
+                                    if (digits.isEmpty) return 'Campo obrigatorio';
+                                    if (digits.length != 8) return 'CEP invalido';
+                                    return null;
+                                  },
+                                  keyboardType: TextInputType.number,
+                                  maxLength: 8,
+                                  onChanged: onCepChanged,
+                                  helperText: erroCep,
+                                  suffixIcon: buscandoCep
+                                      ? const Padding(
+                                          padding: EdgeInsets.all(14),
+                                          child: SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                        )
+                                      : IconButton(
+                                          onPressed: () => onCepChanged(
+                                            cepCtrl.text,
+                                          ),
+                                          icon: const Icon(
+                                            Icons.search_rounded,
+                                            color: AppColors.primary500,
+                                          ),
+                                        ),
+                                ),
+                                const SizedBox(height: 10),
+                                _campoEndereco(
+                                  controller: ruaCtrl,
+                                  label: 'Endereco',
+                                  validator: _validarObrigatorio,
+                                  readOnly: true,
+                                ),
+                                const SizedBox(height: 10),
+                                _campoEndereco(
+                                  controller: bairroCtrl,
+                                  label: 'Bairro',
+                                  validator: _validarObrigatorio,
+                                  readOnly: true,
+                                ),
+                                const SizedBox(height: 10),
+                                _campoEndereco(
+                                  controller: estadoCtrl,
+                                  label: 'UF',
+                                  validator: _validarObrigatorio,
+                                  readOnly: true,
+                                ),
+                                const SizedBox(height: 10),
+                                _campoEndereco(
+                                  controller: cidadeCtrl,
+                                  label: 'Cidade',
+                                  validator: _validarObrigatorio,
+                                  readOnly: true,
+                                ),
+                                const SizedBox(height: 10),
+                                _campoEndereco(
+                                  controller: numeroCtrl,
+                                  label: 'Numero',
+                                  validator: _validarObrigatorio,
+                                  keyboardType: TextInputType.number,
+                                ),
+                                const SizedBox(height: 10),
+                                _campoEndereco(
+                                  controller: complementoCtrl,
+                                  label: 'Complemento',
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary300,
+                            ),
+                            onPressed: () async {
+                              if (buscandoCep) {
+                                _mostrarMensagem(
+                                  'Aguarde a consulta do CEP terminar.',
+                                  erro: true,
+                                );
+                                return;
+                              }
+
+                              if (!(formKey.currentState?.validate() ?? false)) {
+                                return;
+                              }
+
+                              final endereco = EnderecoUsuario(
+                                id: inicial?.id ?? '',
+                                rua: ruaCtrl.text.trim(),
+                                numero: numeroCtrl.text.trim(),
+                                bairro: bairroCtrl.text.trim(),
+                                cidade: cidadeCtrl.text.trim(),
+                                estado: estadoCtrl.text.trim().toUpperCase(),
+                                cep: _somenteDigitos(cepCtrl.text.trim()),
+                                complemento: complementoCtrl.text.trim(),
+                                padrao: inicial?.padrao ?? false,
+                              );
+
+                              try {
+                                if (inicial == null) {
+                                  await EnderecoUsuarioData.salvarNovoEndereco(
+                                    endereco,
+                                  );
+                                } else {
+                                  await EnderecoUsuarioData.atualizarEndereco(
+                                    inicial.id,
+                                    endereco,
+                                  );
+                                }
+
+                                if (!sheetContext.mounted || !mounted) return;
+                                Navigator.pop(sheetContext);
+                                _mostrarMensagem(
+                                  inicial == null
+                                      ? 'Endereco adicionado com sucesso.'
+                                      : 'Endereco atualizado com sucesso.',
+                                );
+                              } catch (_) {
+                                if (!mounted) return;
+                                _mostrarMensagem(
+                                  'Nao foi possivel salvar o endereco.',
+                                  erro: true,
+                                );
+                              }
+                            },
+                            child: Text(
+                              inicial == null
+                                  ? 'Salvar endereco'
+                                  : 'Atualizar endereco',
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

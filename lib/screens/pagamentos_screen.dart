@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
+import 'package:meu_app_flutter/screens/adicionar_cartao.dart';
 import 'package:meu_app_flutter/stripe/customer_identity_service.dart';
 import 'package:meu_app_flutter/stripe/payment_methods_service.dart';
 import 'package:meu_app_flutter/stripe/stripe_config.dart';
@@ -113,7 +113,7 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
     }
   }
 
-  Future<void> _openCustomerSheet() async {
+  Future<void> _openAddCardScreen() async {
     if (_isAddingCard) {
       return;
     }
@@ -132,39 +132,23 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
       final session = await _paymentMethodsService.createCustomerSheetSession(
         customerKey: customerKey,
       );
-
-      await Stripe.instance.initCustomerSheet(
-        customerSheetInitParams: CustomerSheetInitParams(
-          customerId: session.customerId,
-          customerEphemeralKeySecret: session.customerEphemeralKeySecret,
-          setupIntentClientSecret: session.setupIntentClientSecret,
-          merchantDisplayName: 'Pedido Facil',
-          headerTextForSelectionScreen: 'Cartoes salvos',
-          googlePayEnabled: false,
-          applePayEnabled: false,
+      final addedCard = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => AdicionarCartaoScreen(
+            setupIntentClientSecret: session.setupIntentClientSecret,
+          ),
         ),
       );
 
-      await Stripe.instance.presentCustomerSheet();
-      _paymentMethodsService.invalidateCardsCache(customerKey: customerKey);
-      await _loadCards(forceRefresh: true);
-    } on StripeException catch (error) {
-      final code = error.error.code.toString().toLowerCase();
-      final message = (error.error.localizedMessage ?? '').toLowerCase();
-      final wasCancelled =
-          code.contains('cancel') || message.contains('cancel');
-      if (wasCancelled) {
-        return;
+      if (addedCard == true) {
+        _paymentMethodsService.invalidateCardsCache(customerKey: customerKey);
+        await _loadCards(forceRefresh: true);
+        _showSnackBar('Cartao salvo com sucesso.');
       }
-
-      _showSnackBar(
-        error.error.localizedMessage ??
-            'Nao foi possivel abrir o CustomerSheet.',
-      );
     } on PaymentMethodsException catch (error) {
       _showSnackBar(error.message);
     } catch (_) {
-      _showSnackBar('Falha ao abrir o gerenciador de cartoes.');
+      _showSnackBar('Falha ao abrir a tela de cartao.');
     } finally {
       if (mounted) {
         setState(() {
@@ -264,7 +248,7 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
             const SizedBox(height: 14),
             _addCardTile(
               isLoading: _isAddingCard,
-              onTap: _isAddingCard ? null : _openCustomerSheet,
+              onTap: _isAddingCard ? null : _openAddCardScreen,
             ),
           ],
         ),

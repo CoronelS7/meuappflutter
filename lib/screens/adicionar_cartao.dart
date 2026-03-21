@@ -1,116 +1,71 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
 
-class CartaoModel {
-  final String nome;
-  final String numero;
-  final String validade;
-
-  CartaoModel({
-    required this.nome,
-    required this.numero,
-    required this.validade,
-  });
-}
-
 class AdicionarCartaoScreen extends StatefulWidget {
-  const AdicionarCartaoScreen({super.key});
+  const AdicionarCartaoScreen({
+    required this.setupIntentClientSecret,
+    super.key,
+  });
+
+  final String setupIntentClientSecret;
 
   @override
   State<AdicionarCartaoScreen> createState() => _AdicionarCartaoScreenState();
 }
 
 class _AdicionarCartaoScreenState extends State<AdicionarCartaoScreen> {
-  final _formKey = GlobalKey<FormState>();
-
-  final _nomeCtrl = TextEditingController();
-  final _numeroCtrl = TextEditingController();
-  final _validadeCtrl = TextEditingController();
-  final _cvvCtrl = TextEditingController();
-
-  final _nomeFocus = FocusNode();
-  final _numeroFocus = FocusNode();
-  final _validadeFocus = FocusNode();
-  final _cvvFocus = FocusNode();
-
+  final CardEditController _cardController = CardEditController();
+  CardFieldInputDetails? _card;
   bool _isSaving = false;
 
-  String _onlyDigits(String value) {
-    return value.replaceAll(RegExp(r'\D'), '');
+  BillingDetails _defaultBillingDetails() {
+    final user = FirebaseAuth.instance.currentUser;
+    final name = (user?.displayName ?? '').trim();
+    final email = (user?.email ?? '').trim();
+
+    return BillingDetails(
+      name: name.isEmpty ? null : name,
+      email: email.isEmpty ? null : email,
+      address: const Address(
+        city: null,
+        country: 'BR',
+        line1: null,
+        line2: null,
+        postalCode: null,
+        state: null,
+      ),
+    );
   }
 
   void _dismissKeyboard() {
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
-  String? _validateName(String? value) {
-    final name = (value ?? '').trim();
-    if (name.isEmpty) {
-      return 'Informe o nome no cartao';
+  void _showMessage(String message, {bool error = false}) {
+    if (!mounted) {
+      return;
     }
 
-    if (name.length < 3) {
-      return 'Nome muito curto';
-    }
-
-    return null;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: error ? AppColors.error : AppColors.primary300,
+        ),
+      );
   }
 
-  String? _validateCardNumber(String? value) {
-    final digits = _onlyDigits(value ?? '');
-    if (digits.isEmpty) {
-      return 'Informe o numero do cartao';
-    }
+  bool get _canSave => !_isSaving && (_card?.complete ?? false);
 
-    if (digits.length < 13 || digits.length > 19) {
-      return 'Numero de cartao invalido';
-    }
-
-    return null;
-  }
-
-  String? _validateExpiry(String? value) {
-    final clean = (value ?? '').trim();
-    if (clean.isEmpty) {
-      return 'Informe a validade';
-    }
-
-    final match = RegExp(r'^(\d{2})/(\d{2})$').firstMatch(clean);
-    if (match == null) {
-      return 'Use o formato MM/AA';
-    }
-
-    final month = int.tryParse(match.group(1)!);
-    final year = int.tryParse(match.group(2)!);
-    if (month == null || year == null || month < 1 || month > 12) {
-      return 'Validade invalida';
-    }
-
-    final now = DateTime.now();
-    final currentMonth = now.month;
-    final currentYear = now.year % 100;
-
-    if (year < currentYear || (year == currentYear && month < currentMonth)) {
-      return 'Cartao vencido';
-    }
-
-    return null;
-  }
-
-  String? _validateCvv(String? value) {
-    final digits = _onlyDigits(value ?? '');
-    if (digits.length < 3 || digits.length > 4) {
-      return 'CVV invalido';
-    }
-
-    return null;
-  }
-
-  void _saveCard() {
+  Future<void> _saveCard() async {
     _dismissKeyboard();
-    if (!(_formKey.currentState?.validate() ?? false)) {
+
+    if (!_canSave) {
+      _showMessage('Preencha os dados do cartao para continuar.', error: true);
       return;
     }
 
@@ -118,40 +73,66 @@ class _AdicionarCartaoScreenState extends State<AdicionarCartaoScreen> {
       _isSaving = true;
     });
 
-    Navigator.pop(
-      context,
-      CartaoModel(
-        nome: _nomeCtrl.text.trim(),
-        numero: _onlyDigits(_numeroCtrl.text),
-        validade: _validadeCtrl.text.trim(),
-      ),
-    );
+    try {
+      final setupIntent = await Stripe.instance.confirmSetupIntent(
+        paymentIntentClientSecret: widget.setupIntentClientSecret,
+        params: PaymentMethodParams.card(
+          paymentMethodData: PaymentMethodData(
+            billingDetails: _defaultBillingDetails(),
+          ),
+        ),
+      );
+
+      final normalizedStatus = setupIntent.status.toLowerCase();
+      if (normalizedStatus != 'succeeded') {
+        _showMessage(
+          'Nao foi possivel salvar o cartao. Tente novamente.',
+          error: true,
+        );
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pop(true);
+    } on StripeException catch (error) {
+      _showMessage(
+        error.error.localizedMessage ??
+            'Nao foi possivel salvar o cartao.',
+        error: true,
+      );
+    } catch (_) {
+      _showMessage('Falha ao salvar o cartao.', error: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
-    _nomeCtrl.dispose();
-    _numeroCtrl.dispose();
-    _validadeCtrl.dispose();
-    _cvvCtrl.dispose();
-
-    _nomeFocus.dispose();
-    _numeroFocus.dispose();
-    _validadeFocus.dispose();
-    _cvvFocus.dispose();
+    _cardController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
+
     return GestureDetector(
       onTap: _dismissKeyboard,
       behavior: HitTestBehavior.translucent,
       child: Scaffold(
         backgroundColor: Colors.white,
-        resizeToAvoidBottomInset: true,
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
-          backgroundColor: AppColors.primary300,
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
             icon: SvgPicture.asset(
@@ -159,7 +140,7 @@ class _AdicionarCartaoScreenState extends State<AdicionarCartaoScreen> {
               width: 22,
               height: 22,
               colorFilter: const ColorFilter.mode(
-                Colors.white,
+                Colors.black,
                 BlendMode.srcIn,
               ),
             ),
@@ -169,262 +150,211 @@ class _AdicionarCartaoScreenState extends State<AdicionarCartaoScreen> {
             'Adicionar cartao',
             style: TextStyle(
               fontFamily: 'Poppins',
-              fontWeight: FontWeight.w500,
-              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
             ),
           ),
         ),
         body: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
-
-              return AnimatedPadding(
-                duration: const Duration(milliseconds: 120),
-                curve: Curves.easeOut,
-                padding: EdgeInsets.only(bottom: keyboardInset),
-                child: SingleChildScrollView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight - keyboardInset - 24,
-                    ),
-                    child: Form(
-                      key: _formKey,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _field(
-                            controller: _nomeCtrl,
-                            label: 'Nome no cartao',
-                            focusNode: _nomeFocus,
-                            keyboard: TextInputType.name,
-                            validator: _validateName,
-                            autofillHints: const [AutofillHints.creditCardName],
-                            textCapitalization: TextCapitalization.words,
-                            onFieldSubmitted: (_) {
-                              _numeroFocus.requestFocus();
-                            },
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(bottom: keyboardInset),
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8F5EF),
+                            borderRadius: BorderRadius.circular(18),
                           ),
-                          const SizedBox(height: 12),
-                          _field(
-                            controller: _numeroCtrl,
-                            label: 'Numero do cartao',
-                            focusNode: _numeroFocus,
-                            keyboard: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(19),
-                              _CardNumberInputFormatter(),
-                            ],
-                            validator: _validateCardNumber,
-                            autofillHints: const [
-                              AutofillHints.creditCardNumber,
-                            ],
-                            onFieldSubmitted: (_) {
-                              _validadeFocus.requestFocus();
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
+                          child: const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: _field(
-                                  controller: _validadeCtrl,
-                                  label: 'Validade (MM/AA)',
-                                  focusNode: _validadeFocus,
-                                  keyboard: TextInputType.number,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                    LengthLimitingTextInputFormatter(4),
-                                    _ExpiryDateInputFormatter(),
-                                  ],
-                                  validator: _validateExpiry,
-                                  autofillHints: const [
-                                    AutofillHints.creditCardExpirationDate,
-                                  ],
-                                  onFieldSubmitted: (_) {
-                                    _cvvFocus.requestFocus();
-                                  },
+                              Text(
+                                'Novo cartao',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _field(
-                                  controller: _cvvCtrl,
-                                  label: 'CVV',
-                                  focusNode: _cvvFocus,
-                                  keyboard: TextInputType.number,
-                                  obscure: true,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                    LengthLimitingTextInputFormatter(4),
-                                  ],
-                                  validator: _validateCvv,
-                                  autofillHints: const [
-                                    AutofillHints.creditCardSecurityCode,
-                                  ],
-                                  textInputAction: TextInputAction.done,
-                                  onFieldSubmitted: (_) {
-                                    _saveCard();
-                                  },
+                              SizedBox(height: 6),
+                              Text(
+                                'Preencha os dados abaixo. O cartao sera salvo com seguranca pela Stripe para compras futuras.',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 13,
+                                  height: 1.4,
+                                  color: Colors.black54,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 28),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary300,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Dados do cartao',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x11000000),
+                                blurRadius: 18,
+                                offset: Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: CardField(
+                            controller: _cardController,
+                            enablePostalCode: false,
+                            countryCode: 'BR',
+                            numberHintText: 'Numero do cartao',
+                            expirationHintText: 'MM/AA',
+                            cvcHintText: 'CVC',
+                            androidPlatformViewRenderType:
+                                AndroidPlatformViewRenderType.androidView,
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 16,
+                              color: Colors.black,
+                            ),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 18,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE5E7EB),
                                 ),
                               ),
-                              onPressed: _isSaving ? null : _saveCard,
-                              child: _isSaving
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Salvar cartao',
-                                      style: TextStyle(
-                                        fontFamily: 'Poppins',
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE5E7EB),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: AppColors.primary300,
+                                  width: 1.4,
+                                ),
+                              ),
                             ),
+                            onCardChanged: (details) {
+                              if (!mounted) {
+                                return;
+                              }
+                              setState(() {
+                                _card = details;
+                              });
+                            },
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 14),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F9F3),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFCDE8D3)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.lock_outline_rounded,
+                                size: 18,
+                                color: Color(0xFF2F7A43),
+                              ),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Os dados do cartao nao passam pelo app em texto puro.',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF2F7A43),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              );
-            },
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary300,
+                        disabledBackgroundColor: AppColors.primary100,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: _canSave ? _saveCard : null,
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Salvar cartao',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _field({
-    required TextEditingController controller,
-    required String label,
-    required FocusNode focusNode,
-    TextInputType keyboard = TextInputType.text,
-    bool obscure = false,
-    String? Function(String?)? validator,
-    List<TextInputFormatter>? inputFormatters,
-    Iterable<String>? autofillHints,
-    TextInputAction textInputAction = TextInputAction.next,
-    TextCapitalization textCapitalization = TextCapitalization.none,
-    ValueChanged<String>? onFieldSubmitted,
-  }) {
-    return TextFormField(
-      controller: controller,
-      focusNode: focusNode,
-      keyboardType: keyboard,
-      obscureText: obscure,
-      textInputAction: textInputAction,
-      textCapitalization: textCapitalization,
-      autofillHints: autofillHints,
-      inputFormatters: inputFormatters,
-      validator: validator,
-      onTapOutside: (_) => _dismissKeyboard(),
-      onFieldSubmitted: onFieldSubmitted,
-      style: const TextStyle(fontFamily: 'Poppins', fontSize: 14),
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: Colors.white,
-        labelStyle: const TextStyle(
-          fontFamily: 'Poppins',
-          color: AppColors.gray300,
-        ),
-        floatingLabelStyle: const TextStyle(
-          fontFamily: 'Poppins',
-          color: AppColors.primary300,
-          fontWeight: FontWeight.w500,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.primary300, width: 1.5),
-        ),
-      ),
-    );
-  }
-}
-
-class _CardNumberInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final buffer = StringBuffer();
-
-    for (int i = 0; i < digits.length; i++) {
-      if (i > 0 && i % 4 == 0) {
-        buffer.write(' ');
-      }
-      buffer.write(digits[i]);
-    }
-
-    final formatted = buffer.toString();
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
-  }
-}
-
-class _ExpiryDateInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) {
-      return const TextEditingValue(text: '');
-    }
-
-    final truncated = digits.length > 4 ? digits.substring(0, 4) : digits;
-    final buffer = StringBuffer();
-
-    for (int i = 0; i < truncated.length; i++) {
-      if (i == 2) {
-        buffer.write('/');
-      }
-      buffer.write(truncated[i]);
-    }
-
-    final formatted = buffer.toString();
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

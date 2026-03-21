@@ -2,6 +2,7 @@ param(
   [string]$PublishableKey,
   [string]$BackendUrl,
   [string]$DeviceId,
+  [switch]$BackendOnly,
   [switch]$UseLocalIp,
   [switch]$SkipLocalBackend,
   [switch]$ShowConfigOnly,
@@ -529,6 +530,18 @@ else {
   Write-Host "Usando backend remoto em $BackendUrl. O script nao vai iniciar backend local."
 }
 
+$keepBackendRunning = $BackendOnly -and $shouldManageLocalBackend
+
+if ($BackendOnly) {
+  if ($shouldManageLocalBackend) {
+    Write-Host "Backend pronto para o app em $BackendUrl"
+  }
+  else {
+    Write-Host "Nenhum backend local foi iniciado. O app vai usar $BackendUrl"
+  }
+  exit 0
+}
+
 $flutterCommandArgs = @(
   'run'
   "--dart-define=STRIPE_PUBLISHABLE_KEY=$PublishableKey"
@@ -550,7 +563,12 @@ try {
   $flutterExitCode = $LASTEXITCODE
 }
 finally {
-  if ($startedBackend -and $backendProcess -and -not $backendProcess.HasExited) {
+  if (
+    -not $keepBackendRunning -and
+    $startedBackend -and
+    $backendProcess -and
+    -not $backendProcess.HasExited
+  ) {
     Stop-Process -Id $backendProcess.Id -Force
   }
 }
