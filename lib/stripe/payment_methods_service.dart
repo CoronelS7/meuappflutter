@@ -74,8 +74,61 @@ class PaymentMethodsException implements Exception {
 class PaymentMethodsService {
   const PaymentMethodsService();
   static const Duration _requestTimeout = Duration(seconds: 6);
+  static final Map<String, List<SavedPaymentMethod>> _cardsCache =
+      <String, List<SavedPaymentMethod>>{};
+  static final Map<String, Future<List<SavedPaymentMethod>>> _cardsInFlight =
+      <String, Future<List<SavedPaymentMethod>>>{};
 
   Future<List<SavedPaymentMethod>> listSavedCards({
+    required String customerKey,
+    bool forceRefresh = false,
+  }) async {
+    final normalizedCustomerKey = customerKey.trim();
+    if (normalizedCustomerKey.isEmpty) {
+      throw const PaymentMethodsException(
+        'Identificador do cliente invalido para listar cartoes.',
+      );
+    }
+
+    if (!forceRefresh) {
+      final cached = _cardsCache[normalizedCustomerKey];
+      if (cached != null) {
+        return List<SavedPaymentMethod>.from(cached);
+      }
+    }
+
+    final inFlight = _cardsInFlight[normalizedCustomerKey];
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final request = _fetchSavedCards(customerKey: normalizedCustomerKey);
+    _cardsInFlight[normalizedCustomerKey] = request;
+
+    try {
+      final cards = await request;
+      _cardsCache[normalizedCustomerKey] = List<SavedPaymentMethod>.from(cards);
+      return List<SavedPaymentMethod>.from(cards);
+    } finally {
+      if (identical(_cardsInFlight[normalizedCustomerKey], request)) {
+        _cardsInFlight.remove(normalizedCustomerKey);
+      }
+    }
+  }
+
+  void invalidateCardsCache({String? customerKey}) {
+    final targetKey = customerKey?.trim();
+    if (targetKey == null || targetKey.isEmpty) {
+      _cardsCache.clear();
+      _cardsInFlight.clear();
+      return;
+    }
+
+    _cardsCache.remove(targetKey);
+    _cardsInFlight.remove(targetKey);
+  }
+
+  Future<List<SavedPaymentMethod>> _fetchSavedCards({
     required String customerKey,
   }) async {
     final uri = Uri.parse(

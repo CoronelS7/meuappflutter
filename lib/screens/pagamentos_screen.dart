@@ -25,6 +25,20 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
   bool _isLoading = true;
   bool _isAddingCard = false;
   String? _errorMessage;
+  String? _cachedCustomerKey;
+
+  bool get _isCloudFunctionsBackend {
+    final url = StripeConfig.backendBaseUrl.toLowerCase();
+    return url.contains('cloudfunctions.net') || url.contains('.run.app');
+  }
+
+  String get _errorHint {
+    if (_isCloudFunctionsBackend) {
+      return 'Verifique a STRIPE_SECRET_KEY no Firebase Secrets e faca novo deploy da funcao.';
+    }
+
+    return 'Se estiver em celular real, use o IP da sua maquina (ex.: 192.168.x.x:4242) ao rodar com o script run-dev.ps1.';
+  }
 
   @override
   void initState() {
@@ -32,18 +46,30 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
     _loadCards();
   }
 
-  Future<void> _loadCards() async {
+  Future<String> _getCustomerKey() async {
+    final existing = _cachedCustomerKey;
+    if (existing != null && existing.isNotEmpty) {
+      return existing;
+    }
+
+    final resolved = await _customerIdentityService.getOrCreateCustomerKey();
+    _cachedCustomerKey = resolved;
+    return resolved;
+  }
+
+  Future<void> _loadCards({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final customerKey = await _customerIdentityService
-          .getOrCreateCustomerKey()
-          .timeout(const Duration(seconds: 4));
+      final customerKey = await _getCustomerKey().timeout(
+        const Duration(seconds: 4),
+      );
       final cards = await _paymentMethodsService.listSavedCards(
         customerKey: customerKey,
+        forceRefresh: forceRefresh,
       );
 
       if (!mounted) {
@@ -70,7 +96,8 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
       }
 
       setState(() {
-        _errorMessage = error.message;
+        _errorMessage =
+            '${error.message} URL atual: ${StripeConfig.backendBaseUrl}';
         _isLoading = false;
       });
     } catch (_) {
@@ -79,17 +106,20 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
       }
 
       setState(() {
-        _errorMessage = 'Nao foi possivel carregar os cartoes salvos.';
+        _errorMessage =
+            'Nao foi possivel carregar os cartoes salvos. URL atual: ${StripeConfig.backendBaseUrl}';
         _isLoading = false;
       });
     }
   }
 
   Future<void> _openCustomerSheet() async {
-    if (StripeConfig.publishableKey.isEmpty) {
-      _showSnackBar(
-        'Defina STRIPE_PUBLISHABLE_KEY para adicionar cartoes no Stripe.',
-      );
+    if (_isAddingCard) {
+      return;
+    }
+
+    if (!StripeConfig.isStripeConfigured) {
+      _showSnackBar(StripeConfig.publishableKeyValidationMessage);
       return;
     }
 
@@ -98,8 +128,7 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
     });
 
     try {
-      final customerKey = await _customerIdentityService
-          .getOrCreateCustomerKey();
+      final customerKey = await _getCustomerKey();
       final session = await _paymentMethodsService.createCustomerSheetSession(
         customerKey: customerKey,
       );
@@ -117,8 +146,17 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
       );
 
       await Stripe.instance.presentCustomerSheet();
-      await _loadCards();
+      _paymentMethodsService.invalidateCardsCache(customerKey: customerKey);
+      await _loadCards(forceRefresh: true);
     } on StripeException catch (error) {
+      final code = error.error.code.toString().toLowerCase();
+      final message = (error.error.localizedMessage ?? '').toLowerCase();
+      final wasCancelled =
+          code.contains('cancel') || message.contains('cancel');
+      if (wasCancelled) {
+        return;
+      }
+
       _showSnackBar(
         error.error.localizedMessage ??
             'Nao foi possivel abrir o CustomerSheet.',
@@ -137,6 +175,15 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
   }
 
   void _showSnackBar(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    final routeIsCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+    if (!routeIsCurrent) {
+      return;
+    }
+
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
@@ -171,7 +218,7 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: _loadCards,
+        onRefresh: () => _loadCards(forceRefresh: true),
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           children: [
@@ -195,10 +242,9 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
                 icon: Icons.error_outline,
                 iconColor: AppColors.error,
                 title: _errorMessage!,
-                subtitle:
-                    'Se estiver em celular real, use o IP da sua maquina (ex.: 192.168.x.x:4242).',
+                subtitle: _errorHint,
                 actionLabel: 'Tentar novamente',
-                onAction: _loadCards,
+                onAction: () => _loadCards(forceRefresh: true),
               )
             else if (_cards.isEmpty)
               _messageCard(
@@ -385,7 +431,7 @@ class _PagamentosScreenState extends State<PagamentosScreen> {
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: () {
-                onAction();
+                unawaited(onAction());
               },
               child: Text(actionLabel),
             ),

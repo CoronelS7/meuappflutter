@@ -174,7 +174,7 @@ class _CarouselRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: rowItems.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final product = rowItems[index];
 
@@ -192,7 +192,7 @@ class _CarouselRow extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const CarrinhoScreen(),
+                    builder: (context) => const CarrinhoScreen(),
                   ),
                 );
               },
@@ -201,7 +201,8 @@ class _CarouselRow extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => ProductDetailsScreen(product: product),
+                    builder: (context) =>
+                        ProductDetailsScreen(product: product),
                   ),
                 );
               },

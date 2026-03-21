@@ -1,24 +1,31 @@
 const cors = require('cors');
-const dotenv = require('dotenv');
 const express = require('express');
 const Stripe = require('stripe');
+const { onRequest } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
+const logger = require('firebase-functions/logger');
 
-dotenv.config();
-
-const secretKey = process.env.STRIPE_SECRET_KEY;
-const port = Number(process.env.PORT || 4242);
-const host = process.env.HOST || '0.0.0.0';
+const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');
+const zeroBounceApiKey = defineSecret('ZEROBOUNCE_API_KEY');
 const stripeApiVersion = process.env.STRIPE_API_VERSION || '2024-06-20';
 
-if (!secretKey) {
-  throw new Error(
-    'STRIPE_SECRET_KEY is missing. Set it in backend/.env or in the environment.',
-  );
-}
-
-const stripe = new Stripe(secretKey);
-const app = express();
+let stripeClient = null;
+let stripeClientKey = null;
 const customerCache = new Map();
+
+function getStripe() {
+  const secretKey = stripeSecretKey.value();
+  if (!secretKey) {
+    throw new Error('STRIPE_SECRET_KEY is missing in Firebase Secrets.');
+  }
+
+  if (!stripeClient || stripeClientKey !== secretKey) {
+    stripeClient = new Stripe(secretKey);
+    stripeClientKey = secretKey;
+  }
+
+  return stripeClient;
+}
 
 function getValidatedCustomerKey(value) {
   if (typeof value !== 'string' || value.trim().length < 6) {
@@ -28,7 +35,34 @@ function getValidatedCustomerKey(value) {
   return value.trim();
 }
 
+function toSafeStripeErrorMessage(error) {
+  if (!(error instanceof Error)) {
+    return 'Unexpected Stripe error';
+  }
+
+  const message = error.message || '';
+  if (/invalid api key/i.test(message)) {
+    return 'Stripe server key is invalid. Update STRIPE_SECRET_KEY in Firebase Functions Secrets.';
+  }
+
+  return message;
+}
+
+function getValidatedEmail(value) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const email = value.trim().toLowerCase();
+  if (!email || email.length > 254 || !email.includes('@')) {
+    return null;
+  }
+
+  return email;
+}
+
 async function getOrCreateCustomer(customerKey) {
+  const stripe = getStripe();
   const existingCustomerId = await findCustomerByKey(customerKey);
   if (existingCustomerId) {
     return existingCustomerId;
@@ -46,6 +80,7 @@ async function getOrCreateCustomer(customerKey) {
 }
 
 async function findCustomerByKey(customerKey) {
+  const stripe = getStripe();
   const cachedCustomerId = customerCache.get(customerKey);
   if (cachedCustomerId) {
     try {
@@ -54,7 +89,7 @@ async function findCustomerByKey(customerKey) {
         return cachedCustomerId;
       }
     } catch (_error) {
-      // Cache antigo/invalido: continua para busca.
+      // Cache invalido: continua para busca no Stripe.
     }
 
     customerCache.delete(customerKey);
@@ -89,7 +124,7 @@ async function findCustomerByKey(customerKey) {
     }
   }
 
-  // Fallback para contas antigas sem suporte ao endpoint search.
+  // Fallback para contas sem suporte ao endpoint search.
   let hasMore = true;
   let startingAfter;
 
@@ -116,6 +151,7 @@ async function findCustomerByKey(customerKey) {
   return null;
 }
 
+const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
 
@@ -123,8 +159,59 @@ app.get('/health', (_request, response) => {
   response.json({ ok: true });
 });
 
+app.post('/validate-email', async (request, response) => {
+  try {
+    const apiKey = zeroBounceApiKey.value();
+    if (!apiKey) {
+      return response.status(500).json({
+        error:
+          'ZEROBOUNCE_API_KEY is missing in Firebase Functions Secrets.',
+      });
+    }
+
+    const email = getValidatedEmail(request.body?.email);
+    if (!email) {
+      return response.status(400).json({
+        error: 'email must be a valid string',
+      });
+    }
+
+    const zeroBounceUrl = new URL('https://api.zerobounce.net/v2/validate');
+    zeroBounceUrl.searchParams.set('api_key', apiKey);
+    zeroBounceUrl.searchParams.set('email', email);
+
+    const zeroBounceResponse = await fetch(zeroBounceUrl.toString());
+    const payload = await zeroBounceResponse.json().catch(() => ({}));
+
+    if (!zeroBounceResponse.ok) {
+      return response.status(502).json({
+        error: 'ZeroBounce validation failed',
+      });
+    }
+
+    const status =
+      typeof payload?.status === 'string' ? payload.status.toLowerCase() : '';
+    const didYouMean =
+      typeof payload?.did_you_mean === 'string' ? payload.did_you_mean : '';
+
+    return response.json({
+      isValid: status === 'valid',
+      status,
+      didYouMean,
+    });
+  } catch (error) {
+    logger.error('validate-email failed', {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return response.status(500).json({
+      error: 'Nao foi possivel validar o e-mail agora.',
+    });
+  }
+});
+
 app.post('/create-payment-intent', async (request, response) => {
   try {
+    const stripe = getStripe();
     const {
       amountInCents,
       amount,
@@ -140,7 +227,8 @@ app.post('/create-payment-intent', async (request, response) => {
 
     if (!Number.isInteger(normalizedAmount) || normalizedAmount <= 0) {
       return response.status(400).json({
-        error: 'amountInCents must be a positive integer in the smallest currency unit',
+        error:
+          'amountInCents must be a positive integer in the smallest currency unit',
       });
     }
 
@@ -176,15 +264,15 @@ app.post('/create-payment-intent', async (request, response) => {
       customerEphemeralKeySecret: ephemeralKey.secret,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Unexpected Stripe error';
-
+    const message = toSafeStripeErrorMessage(error);
+    logger.error('create-payment-intent failed', { message });
     return response.status(500).json({ error: message });
   }
 });
 
 app.get('/payment-methods', async (request, response) => {
   try {
+    const stripe = getStripe();
     const validatedCustomerKey = getValidatedCustomerKey(
       request.query.customerKey,
     );
@@ -225,15 +313,15 @@ app.get('/payment-methods', async (request, response) => {
       })),
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Unexpected Stripe error';
-
+    const message = toSafeStripeErrorMessage(error);
+    logger.error('payment-methods failed', { message });
     return response.status(500).json({ error: message });
   }
 });
 
 app.post('/customer-sheet', async (request, response) => {
   try {
+    const stripe = getStripe();
     const validatedCustomerKey = getValidatedCustomerKey(
       request.body?.customerKey,
     );
@@ -261,13 +349,18 @@ app.post('/customer-sheet', async (request, response) => {
       setupIntentClientSecret: setupIntent.client_secret,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Unexpected Stripe error';
-
+    const message = toSafeStripeErrorMessage(error);
+    logger.error('customer-sheet failed', { message });
     return response.status(500).json({ error: message });
   }
 });
 
-app.listen(port, host, () => {
-  console.log(`Stripe backend listening on http://${host}:${port}`);
-});
+exports.stripeApi = onRequest(
+  {
+    region: 'southamerica-east1',
+    timeoutSeconds: 60,
+    memory: '256MiB',
+    secrets: [stripeSecretKey, zeroBounceApiKey],
+  },
+  app,
+);

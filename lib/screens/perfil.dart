@@ -10,7 +10,6 @@ class PerfilScreen extends StatelessWidget {
   const PerfilScreen({super.key});
 
   Future<Map<String, dynamic>?> _buscarUsuario() async {
-
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -36,7 +35,6 @@ class PerfilScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
@@ -59,7 +57,6 @@ class PerfilScreen extends StatelessWidget {
                   /// 👤 PERFIL
                   Row(
                     children: [
-
                       const CircleAvatar(
                         radius: 40,
                         backgroundImage: AssetImage(
@@ -71,11 +68,9 @@ class PerfilScreen extends StatelessWidget {
 
                       /// SE USUÁRIO LOGADO
                       if (dadosUsuario != null)
-
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-
                             Text(
                               dadosUsuario["nome"] ?? "",
                               style: const TextStyle(
@@ -95,17 +90,13 @@ class PerfilScreen extends StatelessWidget {
                                 fontFamily: 'Poppins',
                               ),
                             ),
-
                           ],
                         )
-
                       /// SE NÃO ESTIVER LOGADO
                       else
-
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-
                             const Text(
                               "Você não está logado",
                               style: TextStyle(
@@ -119,21 +110,17 @@ class PerfilScreen extends StatelessWidget {
 
                             ElevatedButton(
                               onPressed: () {
-
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => const LoginScreen(),
                                   ),
                                 );
-
                               },
                               child: const Text("Entrar"),
-                            )
-
+                            ),
                           ],
-                        )
-
+                        ),
                     ],
                   ),
 
@@ -158,7 +145,6 @@ class PerfilScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-
                         _menuItem(
                           'assets/icones/conta.svg',
                           'Dados da conta',
@@ -195,7 +181,6 @@ class PerfilScreen extends StatelessWidget {
                         ),
 
                         _divider(),
-
                       ],
                     ),
                   ),
@@ -221,7 +206,6 @@ class PerfilScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-
                         _menuItem(
                           'assets/icones/config.svg',
                           'Configurações',
@@ -247,23 +231,23 @@ class PerfilScreen extends StatelessWidget {
                           textColor: Colors.red,
                           chevronColor: Colors.red,
                           onTap: () async {
-
                             await FirebaseAuth.instance.signOut();
+                            if (!context.mounted) {
+                              return;
+                            }
 
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const MainNavigation()),
+                                builder: (_) => const MainNavigation(),
+                              ),
                               (route) => false,
                             );
-
                           },
                         ),
-
                       ],
                     ),
                   ),
-
                 ],
               ),
             );

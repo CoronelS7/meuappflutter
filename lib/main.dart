@@ -16,11 +16,11 @@ Future<void> main() async {
 }
 
 Future<void> _configureStripe() async {
-  if (StripeConfig.publishableKey.isEmpty) {
+  if (!StripeConfig.isStripeConfigured) {
     return;
   }
 
-  Stripe.publishableKey = StripeConfig.publishableKey;
+  Stripe.publishableKey = StripeConfig.normalizedPublishableKey;
   await Stripe.instance.applySettings();
 }
 

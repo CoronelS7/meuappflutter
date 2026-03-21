@@ -28,10 +28,7 @@ class ProductDetailsScreen extends StatelessWidget {
             'assets/icones/arrow.svg',
             width: 28,
             height: 28,
-            colorFilter: const ColorFilter.mode(
-              Colors.white,
-              BlendMode.srcIn,
-            ),
+            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
           ),
         ),
       ),
@@ -105,7 +102,7 @@ class ProductDetailsScreen extends StatelessWidget {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.12),
+              color: Colors.black.withValues(alpha: 0.12),
               blurRadius: 12,
               offset: const Offset(0, -4),
             ),
@@ -121,9 +118,7 @@ class ProductDetailsScreen extends StatelessWidget {
               // ✅ 2) navega para o carrinho (sem navbar)
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const CarrinhoScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const CarrinhoScreen()),
               );
             },
             style: ElevatedButton.styleFrom(
@@ -149,10 +144,7 @@ class ProductDetailsScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 const Text(
                   'Adicionar ao carrinho',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ],
             ),

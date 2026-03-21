@@ -9,6 +9,7 @@ import 'package:meu_app_flutter/cores/app_colors.dart';
 import 'package:meu_app_flutter/data/cart_data.dart';
 import 'package:meu_app_flutter/data/endereco_usuario_data.dart';
 import 'package:meu_app_flutter/data/notificacoes_data.dart';
+import 'package:meu_app_flutter/data/pedido_status_data.dart';
 import 'package:meu_app_flutter/screens/enderecos_screen.dart';
 import 'package:meu_app_flutter/screens/login.dart';
 import 'package:meu_app_flutter/screens/main_navigation.dart';
@@ -595,10 +596,8 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
       return;
     }
 
-    if (StripeConfig.publishableKey.isEmpty) {
-      _showSnackBar(
-        'Defina STRIPE_PUBLISHABLE_KEY para abrir o checkout Stripe.',
-      );
+    if (!StripeConfig.isStripeConfigured) {
+      _showSnackBar(StripeConfig.publishableKeyValidationMessage);
       return;
     }
 
@@ -645,6 +644,10 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
         quantidadeItens: CartData.totalItems,
         total: totalPedido,
         itens: itensPedido,
+      );
+      PedidoStatusData.iniciarRastreamento(
+        itens: itensPedido,
+        total: totalPedido,
       );
 
       setState(() {

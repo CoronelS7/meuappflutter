@@ -1,0 +1,17 @@
+{
+  "name": "pedido-facil-functions",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "deploy": "firebase deploy --only functions:stripeApi"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "firebase-functions": "^7.2.2",
+    "stripe": "^18.1.1"
+  }
+}

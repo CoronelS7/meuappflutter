@@ -1,4 +1,4 @@
-﻿import "package:flutter/material.dart";
+import "package:flutter/material.dart";
 import "package:meu_app_flutter/cores/app_colors.dart";
 
 class ProductCard extends StatelessWidget {
@@ -41,8 +41,9 @@ class ProductCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
                 child: Image.asset(
                   image,
                   width: double.infinity,
@@ -50,7 +51,7 @@ class ProductCard extends StatelessWidget {
                   fit: BoxFit.cover,
 
                   // Evita crash se a imagem não existir ou falhar ao carregar
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (context, error, stackTrace) => Container(
                     height: 160,
                     color: Colors.grey.shade200,
                     alignment: Alignment.center,

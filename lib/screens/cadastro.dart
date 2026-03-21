@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:meu_app_flutter/cores/app_colors.dart';
+import 'package:meu_app_flutter/stripe/stripe_config.dart';
 import 'main_navigation.dart';
 
 class CadastroScreen extends StatefulWidget {
@@ -33,8 +35,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
   double _forcaSenha = 0;
   bool _mostrarBarraSenha = false;
   String _textoForcaSenha = "";
-
-  final String zeroBounceApiKey = "6531086b03264692b6bb380e73c528cc";
 
   @override
   void dispose() {
@@ -74,7 +74,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
     if (forca <= 0.25) {
       _textoForcaSenha = "Senha fraca";
     } else if (forca <= 0.50) {
-      _textoForcaSenha = "Senha mÃ©dia";
+      _textoForcaSenha = "Senha media";
     } else {
       _textoForcaSenha = "Senha forte";
     }
@@ -95,23 +95,42 @@ class _CadastroScreenState extends State<CadastroScreen> {
     return Colors.green;
   }
 
-  Future<bool> _validarEmailZeroBounce(String email) async {
+  Future<_EmailValidationResult> _validarEmailZeroBounce(String email) async {
     try {
-      final url = Uri.parse(
-        "https://api.zerobounce.net/v2/validate?api_key=$zeroBounceApiKey&email=$email",
-      );
-
-      final resposta = await http.get(url);
+      final resposta = await http
+          .post(
+            Uri.parse('${StripeConfig.backendBaseUrl}/validate-email'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 8));
 
       if (resposta.statusCode == 200) {
         final data = jsonDecode(resposta.body);
-        return data["status"] == "valid";
+        if (data is Map<String, dynamic>) {
+          return _EmailValidationResult(
+            serviceAvailable: true,
+            isValid: data['isValid'] == true,
+            didYouMean: data['didYouMean'] as String?,
+          );
+        }
       }
-    } catch (_) {
-      return false;
-    }
 
-    return false;
+      return const _EmailValidationResult(
+        serviceAvailable: false,
+        isValid: false,
+      );
+    } on TimeoutException {
+      return const _EmailValidationResult(
+        serviceAvailable: false,
+        isValid: false,
+      );
+    } catch (_) {
+      return const _EmailValidationResult(
+        serviceAvailable: false,
+        isValid: false,
+      );
+    }
   }
 
   Future<void> _cadastrarUsuario() async {
@@ -155,9 +174,25 @@ class _CadastroScreenState extends State<CadastroScreen> {
     });
 
     try {
-      final emailValido = await _validarEmailZeroBounce(email);
-      if (!emailValido) {
-        _mostrarMensagem("Este e-mail nao existe.", Colors.red);
+      final emailValidation = await _validarEmailZeroBounce(email);
+      if (!emailValidation.serviceAvailable) {
+        _mostrarMensagem(
+          "Nao foi possivel validar o e-mail agora. Tente novamente em instantes.",
+          Colors.red,
+        );
+        return;
+      }
+
+      if (!emailValidation.isValid) {
+        final suggestion = (emailValidation.didYouMean ?? '').trim();
+        if (suggestion.isNotEmpty) {
+          _mostrarMensagem(
+            "Este e-mail parece invalido. Voce quis dizer $suggestion?",
+            Colors.red,
+          );
+        } else {
+          _mostrarMensagem("Este e-mail nao existe.", Colors.red);
+        }
         return;
       }
 
@@ -483,4 +518,16 @@ class _CadastroScreenState extends State<CadastroScreen> {
       ),
     );
   }
+}
+
+class _EmailValidationResult {
+  const _EmailValidationResult({
+    required this.serviceAvailable,
+    required this.isValid,
+    this.didYouMean,
+  });
+
+  final bool serviceAvailable;
+  final bool isValid;
+  final String? didYouMean;
 }

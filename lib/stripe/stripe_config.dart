@@ -3,10 +3,18 @@ import 'package:flutter/foundation.dart';
 class StripeConfig {
   static const publishableKey = String.fromEnvironment(
     'STRIPE_PUBLISHABLE_KEY',
+    defaultValue:
+        'pk_test_51T7feJJKRPbMWbDHvcKll1DipZVEaqKylzmtQAsqdLUqrSrehE4t2epb2r0bP8hqBmPXtCh2cMQLUWfc3i0uIXxk00I65lDQ5F',
   );
 
   static const backendUrlOverride = String.fromEnvironment(
     'STRIPE_BACKEND_URL',
+  );
+
+  static const cloudFunctionsBackendUrl = String.fromEnvironment(
+    'STRIPE_CLOUD_FUNCTIONS_URL',
+    defaultValue:
+        'https://southamerica-east1-ecommerce-40890.cloudfunctions.net/stripeApi',
   );
 
   static const googlePayMerchantCountryCode = String.fromEnvironment(
@@ -23,7 +31,65 @@ class StripeConfig {
     'STRIPE_GOOGLE_PAY_TEST_ENV',
   );
 
-  static bool get isStripeConfigured => publishableKey.isNotEmpty;
+  static String get normalizedPublishableKey => publishableKey.trim();
+
+  static bool isPublishableKeyValid(String rawKey) {
+    final key = rawKey.trim();
+    if (key.isEmpty) {
+      return false;
+    }
+
+    final hasValidPrefix =
+        key.startsWith('pk_test_') || key.startsWith('pk_live_');
+    if (!hasValidPrefix) {
+      return false;
+    }
+
+    final lower = key.toLowerCase();
+    const placeholderTokens = <String>[
+      'sua_chave',
+      'cole_sua',
+      'placeholder',
+      'your_key',
+      'yourkey',
+      'example',
+      'xxxx',
+    ];
+
+    for (final token in placeholderTokens) {
+      if (lower.contains(token)) {
+        return false;
+      }
+    }
+
+    return key.length >= 32;
+  }
+
+  static String maskPublishableKey(String rawKey) {
+    final key = rawKey.trim();
+    if (key.isEmpty) {
+      return '(vazia)';
+    }
+
+    if (key.length <= 18) {
+      return key;
+    }
+
+    final start = key.substring(0, 12);
+    final end = key.substring(key.length - 6);
+    return '$start...$end (len ${key.length})';
+  }
+
+  static bool get isStripeConfigured =>
+      isPublishableKeyValid(normalizedPublishableKey);
+
+  static String get publishableKeyValidationMessage {
+    if (normalizedPublishableKey.isEmpty) {
+      return 'Defina STRIPE_PUBLISHABLE_KEY com uma chave publica da Stripe (pk_test_... ou pk_live_...).';
+    }
+
+    return 'STRIPE_PUBLISHABLE_KEY invalida. Use a chave publica real da Stripe (pk_test_... ou pk_live_...). Valor atual: ${maskPublishableKey(normalizedPublishableKey)}';
+  }
 
   static bool get isAndroid =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -33,7 +99,7 @@ class StripeConfig {
       return googlePayTestEnvOverride.toLowerCase() == 'true';
     }
 
-    return publishableKey.startsWith('pk_test_');
+    return normalizedPublishableKey.startsWith('pk_test_');
   }
 
   static String get backendBaseUrl {
@@ -41,14 +107,6 @@ class StripeConfig {
       return backendUrlOverride;
     }
 
-    if (kIsWeb) {
-      return 'http://localhost:4242';
-    }
-
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:4242';
-    }
-
-    return 'http://localhost:4242';
+    return cloudFunctionsBackendUrl;
   }
 }

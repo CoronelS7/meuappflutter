@@ -310,9 +310,7 @@ class _MetodoPagamentoScreenState extends State<MetodoPagamentoScreen> {
     bool enabled = true,
   }) {
     final isSelected = _metodoSelecionado == value;
-    final borderColor = isSelected
-        ? AppColors.primary300
-        : AppColors.gray300;
+    final borderColor = isSelected ? AppColors.primary300 : AppColors.gray300;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
