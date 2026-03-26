@@ -13,7 +13,7 @@ void main() {
 
   test('CartData badgeCount acompanha a quantidade total de itens', () {
     const product = Product(
-      image: 'assets/imagens/hamburger_simples.png',
+      image: 'https://example.com/hamburguer.png',
       name: 'Hamburguer Simples',
       price: 'R\$ 12,50',
       description: 'Item de teste',

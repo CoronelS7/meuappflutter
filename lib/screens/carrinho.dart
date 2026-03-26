@@ -17,6 +17,7 @@ import 'package:meu_app_flutter/screens/metodo_pagamento.dart';
 import 'package:meu_app_flutter/stripe/checkout_service.dart';
 import 'package:meu_app_flutter/stripe/customer_identity_service.dart';
 import 'package:meu_app_flutter/stripe/stripe_config.dart';
+import 'package:meu_app_flutter/widgets/product_image.dart';
 
 class CarrinhoScreen extends StatefulWidget {
   const CarrinhoScreen({super.key});
@@ -1013,8 +1014,8 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      item.product.image,
+                    child: ProductImage(
+                      image: item.product.image,
                       width: 70,
                       height: 70,
                       fit: BoxFit.cover,

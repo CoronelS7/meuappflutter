@@ -1,12 +1,13 @@
 import "package:flutter/material.dart";
 import "package:meu_app_flutter/cores/app_colors.dart";
+import "package:meu_app_flutter/widgets/product_image.dart";
 
 class ProductCard extends StatelessWidget {
   final String image;
   final String name;
   final String price;
   final VoidCallback onAdd;
-  final VoidCallback? onTap; // ✅ NOVO (opcional)
+  final VoidCallback? onTap;
 
   const ProductCard({
     super.key,
@@ -22,7 +23,7 @@ class ProductCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap, // ✅ clique no card inteiro
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 8),
@@ -44,27 +45,14 @@ class ProductCard extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
-                child: Image.asset(
-                  image,
+                child: ProductImage(
+                  image: image,
                   width: double.infinity,
                   height: 160,
                   fit: BoxFit.cover,
-
-                  // Evita crash se a imagem não existir ou falhar ao carregar
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 160,
-                    color: Colors.grey.shade200,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.image_not_supported,
-                      color: Colors.grey,
-                    ),
-                  ),
                 ),
               ),
-
               const SizedBox(height: 10),
-
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
@@ -77,9 +65,7 @@ class ProductCard extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 6),
-
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
@@ -91,9 +77,7 @@ class ProductCard extends StatelessWidget {
                   ),
                 ),
               ),
-
               const Spacer(),
-
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                 child: SizedBox(

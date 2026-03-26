@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:meu_app_flutter/models/product.dart';
+import 'package:meu_app_flutter/widgets/product_image.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -22,13 +23,11 @@ class ProductCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: ClipRRect(
+              child: ProductImage(
+                image: product.image,
+                fit: BoxFit.cover,
+                width: double.infinity,
                 borderRadius: BorderRadius.circular(25),
-                child: Image.asset(
-                  product.image,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                ),
               ),
             ),
             const SizedBox(height: 6),

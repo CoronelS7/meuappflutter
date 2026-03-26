@@ -4,6 +4,7 @@ import 'package:meu_app_flutter/models/product.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
 import 'package:meu_app_flutter/data/cart_data.dart';
 import 'package:meu_app_flutter/screens/carrinho.dart';
+import 'package:meu_app_flutter/widgets/product_image.dart';
 
 class ProductDetailsScreen extends StatelessWidget {
   final Product product;
@@ -39,8 +40,8 @@ class ProductDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.asset(
-              product.image,
+            ProductImage(
+              image: product.image,
               width: double.infinity,
               height: screenHeight * 0.4,
               fit: BoxFit.cover,

@@ -1,25 +1,33 @@
 import "package:flutter/material.dart";
 import "package:meu_app_flutter/cores/app_colors.dart";
-import "package:meu_app_flutter/data/produtos_data.dart";
-import "package:meu_app_flutter/models/product.dart";
-import "package:meu_app_flutter/widgets/product_card.dart";
-import "package:meu_app_flutter/screens/product_details_screen.dart";
-
-// ✅ NOVOS IMPORTS
 import "package:meu_app_flutter/data/cart_data.dart";
+import "package:meu_app_flutter/data/products_repository.dart";
+import "package:meu_app_flutter/models/product.dart";
 import "package:meu_app_flutter/screens/carrinho.dart";
+import "package:meu_app_flutter/screens/product_details_screen.dart";
+import "package:meu_app_flutter/widgets/product_card.dart";
 
 class CardapioScreen extends StatelessWidget {
   const CardapioScreen({super.key});
 
+  static const List<String> _sections = [
+    'Lanches',
+    'Acompanhamentos',
+    'Saudaveis',
+    'Sobremesas',
+    'Bebidas',
+    'Combos',
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final productsRepository = ProductsRepository();
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HEADER
           Container(
             height: MediaQuery.of(context).size.height * 0.16,
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -45,7 +53,7 @@ class CardapioScreen extends StatelessWidget {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Cardápio',
+                  'Cardapio',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -55,58 +63,91 @@ class CardapioScreen extends StatelessWidget {
               ),
             ),
           ),
-
-          // CONTEÚDO
           Expanded(
-            child: SingleChildScrollView(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final w = constraints.maxWidth;
-
-                  final double cardWidth = w < 480
-                      ? w * 0.5
-                      : w < 800
-                      ? w * 0.5
-                      : 280.0;
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _ProductSection(
-                        title: 'Lanches',
-                        items: lanches,
-                        cardWidth: cardWidth,
-                        itemsPerRow: 6,
+            child: StreamBuilder<List<Product>>(
+              initialData: productsRepository.cachedProducts,
+              stream: productsRepository.watchProducts(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text(
+                      'Nao foi possivel carregar o cardapio.',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        color: AppColors.gray400,
                       ),
-                      _ProductSection(
-                        title: 'Acompanhamentos',
-                        items: acompanhamentos,
-                        cardWidth: cardWidth,
-                        itemsPerRow: 6,
-                      ),
-                      _ProductSection(
-                        title: 'Saudáveis',
-                        items: saudaveis,
-                        cardWidth: cardWidth,
-                        itemsPerRow: 6,
-                      ),
-                      _ProductSection(
-                        title: 'Sobremesas',
-                        items: sobremesas,
-                        cardWidth: cardWidth,
-                        itemsPerRow: 6,
-                      ),
-                      _ProductSection(
-                        title: 'Bebidas',
-                        items: bebidas,
-                        cardWidth: cardWidth,
-                        itemsPerRow: 6,
-                      ),
-                      const SizedBox(height: 20),
-                    ],
+                    ),
                   );
-                },
-              ),
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final products = snapshot.data ?? [];
+                if (products.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Nenhum produto disponivel no momento.',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        color: AppColors.gray400,
+                      ),
+                    ),
+                  );
+                }
+
+                return SingleChildScrollView(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final width = constraints.maxWidth;
+                      final double cardWidth = width < 800 ? width * 0.5 : 280;
+
+                      final sections = _sections
+                          .map(
+                            (title) => (
+                              title: title,
+                              items: products
+                                  .where((product) => product.matchesCategory(title))
+                                  .toList(),
+                            ),
+                          )
+                          .where((section) => section.items.isNotEmpty)
+                          .toList();
+
+                      if (sections.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Center(
+                            child: Text(
+                              'Nenhum produto disponivel no momento.',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                color: AppColors.gray400,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (final section in sections)
+                            _ProductSection(
+                              title: section.title,
+                              items: section.items,
+                              cardWidth: cardWidth,
+                              itemsPerRow: 6,
+                            ),
+                          const SizedBox(height: 20),
+                        ],
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -184,8 +225,6 @@ class _CarouselRow extends StatelessWidget {
               image: product.image,
               name: product.name,
               price: product.price,
-
-              // ✅ ALTERADO: agora adiciona no carrinho e navega
               onAdd: () {
                 CartData.addProduct(product);
 
@@ -196,7 +235,6 @@ class _CarouselRow extends StatelessWidget {
                   ),
                 );
               },
-
               onTap: () {
                 Navigator.push(
                   context,

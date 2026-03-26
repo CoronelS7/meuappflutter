@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
 import 'package:meu_app_flutter/data/notificacoes_data.dart';
+import 'package:meu_app_flutter/widgets/product_image.dart';
 
 class NotificacoesScreen extends StatefulWidget {
   const NotificacoesScreen({super.key});
@@ -392,8 +393,8 @@ class PedidoDetalheNotificacaoScreen extends StatelessWidget {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
-                          child: Image.asset(
-                            item.imagem,
+                          child: ProductImage(
+                            image: item.imagem,
                             width: 52,
                             height: 52,
                             fit: BoxFit.cover,

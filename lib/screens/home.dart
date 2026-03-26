@@ -1,14 +1,14 @@
+import 'package:diacritic/diacritic.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:diacritic/diacritic.dart';
 
 import 'package:meu_app_flutter/cores/app_colors.dart';
 import 'package:meu_app_flutter/data/notificacoes_data.dart';
+import 'package:meu_app_flutter/data/products_repository.dart';
 import 'package:meu_app_flutter/models/product.dart';
 import 'package:meu_app_flutter/screens/notificacoes_screen.dart';
 import 'package:meu_app_flutter/screens/product_details_screen.dart';
-import '../data/popular_products.dart';
-import '../widgets/home_card.dart';
+import 'package:meu_app_flutter/widgets/home_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,32 +18,50 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final ProductsRepository _productsRepository = ProductsRepository();
+
+  static const List<String> _categories = [
+    'Lanches',
+    'Acompanhamentos',
+    'Saudaveis',
+    'Sobremesas',
+    'Bebidas',
+    'Combos',
+  ];
+
   String? _categoriaSelecionada;
   String _busca = '';
 
-  // 🔥 FUNÇÃO PARA NORMALIZAR TEXTO (remove acento + lowercase)
-  String normalizar(String texto) {
+  String _normalizar(String texto) {
     return removeDiacritics(texto).toLowerCase().trim();
   }
 
-  List<Product> produtosFiltrados() {
-    final buscaNormalizada = normalizar(_busca);
+  List<Product> _produtosFiltrados(List<Product> products) {
+    final buscaNormalizada = _normalizar(_busca);
 
-    return popularProducts.where((p) {
-      final nome = normalizar(p.name);
-      final categoria = normalizar(p.category);
+    final filtrados = products.where((product) {
+      final nome = _normalizar(product.name);
+      final categoria = Product.normalizeCategory(product.category);
+      final categoriaOriginal = _normalizar(product.category);
 
       final matchCategoria = _categoriaSelecionada == null
           ? true
-          : categoria == normalizar(_categoriaSelecionada!);
+          : categoria == Product.normalizeCategory(_categoriaSelecionada!);
 
       final matchBusca = buscaNormalizada.isEmpty
           ? true
           : nome.contains(buscaNormalizada) ||
-                categoria.contains(buscaNormalizada);
+                categoria.contains(buscaNormalizada) ||
+                categoriaOriginal.contains(buscaNormalizada);
 
       return matchCategoria && matchBusca;
     }).toList();
+
+    if (_categoriaSelecionada == null && buscaNormalizada.isEmpty) {
+      return filtrados.where((product) => product.featured).toList();
+    }
+
+    return filtrados;
   }
 
   @override
@@ -60,14 +78,33 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             _buildPopularTitle(),
             const SizedBox(height: 8),
-            Expanded(child: _buildPopularGrid()),
+            Expanded(
+              child: StreamBuilder<List<Product>>(
+                initialData: _productsRepository.cachedProducts,
+                stream: _productsRepository.watchProducts(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return _buildStateMessage(
+                      'Nao foi possivel carregar os produtos.',
+                    );
+                  }
+
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      !snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final produtos = _produtosFiltrados(snapshot.data ?? []);
+                  return _buildPopularGrid(produtos);
+                },
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // ================= HEADER =================
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -97,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const Expanded(
                 child: Text(
-                  'Pedido Fácil',
+                  'Pedido Facil',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     color: Colors.white,
@@ -168,8 +205,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 22),
-
-          // 🔍 BUSCA
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
@@ -202,17 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ================= CATEGORIES =================
   Widget _buildCategories() {
-    final categories = [
-      'Lanches',
-      'Acompanhamentos',
-      'Saudaveis',
-      'Sobremesas',
-      'Bebidas',
-      'Combos',
-    ];
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -230,13 +255,13 @@ class _HomeScreenState extends State<HomeScreen> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: categories.map((c) {
-                final isSelected = _categoriaSelecionada == c;
+              children: _categories.map((category) {
+                final isSelected = _categoriaSelecionada == category;
 
                 return GestureDetector(
                   onTap: () {
                     setState(() {
-                      _categoriaSelecionada = isSelected ? null : c;
+                      _categoriaSelecionada = isSelected ? null : category;
                     });
                   },
                   child: Container(
@@ -253,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      c,
+                      category,
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         color: isSelected ? Colors.white : AppColors.primary600,
@@ -269,7 +294,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ================= TÍTULO =================
   Widget _buildPopularTitle() {
     if (_busca.isNotEmpty) {
       return Padding(
@@ -298,28 +322,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ================= GRID =================
-  Widget _buildPopularGrid() {
-    final lista = produtosFiltrados();
-
-    if (lista.isEmpty) {
-      return Center(
-        child: Text(
-          'Nenhum item encontrado',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 16,
-            color: AppColors.gray400,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      );
+  Widget _buildPopularGrid(List<Product> products) {
+    if (products.isEmpty) {
+      return _buildStateMessage('Nenhum item encontrado');
     }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
-        itemCount: lista.length,
+        itemCount: products.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           mainAxisSpacing: 12,
@@ -327,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
           childAspectRatio: 1,
         ),
         itemBuilder: (context, index) {
-          final product = lista[index];
+          final product = products[index];
 
           return ProductCard(
             product: product,
@@ -341,6 +352,20 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildStateMessage(String message) {
+    return Center(
+      child: Text(
+        message,
+        style: const TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 16,
+          color: AppColors.gray400,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }

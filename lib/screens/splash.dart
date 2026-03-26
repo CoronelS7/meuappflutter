@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
+import 'package:meu_app_flutter/data/products_repository.dart';
 import 'package:meu_app_flutter/screens/main_navigation.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -12,28 +13,37 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  Timer? _navigationTimer;
+  final ProductsRepository _productsRepository = ProductsRepository();
 
   @override
   void initState() {
     super.initState();
-
-    _navigationTimer = Timer(const Duration(seconds: 3), () {
-      if (!mounted) {
-        return;
-      }
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainNavigation()),
-      );
-    });
+    _initializeApp();
   }
 
   @override
   void dispose() {
-    _navigationTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _initializeApp() async {
+    final splashDelay = Future<void>.delayed(const Duration(seconds: 3));
+    final preloadProducts = _productsRepository.preloadProducts().catchError((
+      _,
+    ) {
+      return _productsRepository.cachedProducts;
+    });
+
+    await Future.wait([splashDelay, preloadProducts]);
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const MainNavigation()),
+    );
   }
 
   @override
@@ -52,9 +62,7 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // SVG LOGO
             Image.asset('assets/imagens/logo.png', height: 204, width: 204),
-            const SizedBox(height: 20),
           ],
         ),
       ),
