@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:meu_app_flutter/cores/app_colors.dart";
 import "package:meu_app_flutter/data/cart_data.dart";
+import "package:meu_app_flutter/data/product_rating_repository.dart";
 import "package:meu_app_flutter/data/products_repository.dart";
 import "package:meu_app_flutter/models/product.dart";
 import "package:meu_app_flutter/screens/carrinho.dart";
@@ -22,6 +23,7 @@ class CardapioScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final productsRepository = ProductsRepository();
+    final ratingRepository = ProductRatingRepository();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -98,54 +100,68 @@ class CardapioScreen extends StatelessWidget {
                   );
                 }
 
-                return SingleChildScrollView(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = constraints.maxWidth;
-                      final double cardWidth = width < 800 ? width * 0.5 : 280;
+                return StreamBuilder<Map<String, ProductRatingSummary>>(
+                  initialData: const <String, ProductRatingSummary>{},
+                  stream: ratingRepository.watchSummariesByProduct(),
+                  builder: (context, ratingSnapshot) {
+                    final ratingsByProduct = ratingSnapshot.data ?? const {};
 
-                      final sections = _sections
-                          .map(
-                            (title) => (
-                              title: title,
-                              items: products
-                                  .where((product) => product.matchesCategory(title))
-                                  .toList(),
-                            ),
-                          )
-                          .where((section) => section.items.isNotEmpty)
-                          .toList();
+                    return SingleChildScrollView(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final width = constraints.maxWidth;
+                          final double cardWidth = width < 800
+                              ? width * 0.5
+                              : 280;
 
-                      if (sections.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Center(
-                            child: Text(
-                              'Nenhum produto disponivel no momento.',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                color: AppColors.gray400,
+                          final sections = _sections
+                              .map(
+                                (title) => (
+                                  title: title,
+                                  items: products
+                                      .where(
+                                        (product) =>
+                                            product.matchesCategory(title),
+                                      )
+                                      .toList(),
+                                ),
+                              )
+                              .where((section) => section.items.isNotEmpty)
+                              .toList();
+
+                          if (sections.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.all(24),
+                              child: Center(
+                                child: Text(
+                                  'Nenhum produto disponivel no momento.',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    color: AppColors.gray400,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        );
-                      }
+                            );
+                          }
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          for (final section in sections)
-                            _ProductSection(
-                              title: section.title,
-                              items: section.items,
-                              cardWidth: cardWidth,
-                              itemsPerRow: 6,
-                            ),
-                          const SizedBox(height: 20),
-                        ],
-                      );
-                    },
-                  ),
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (final section in sections)
+                                _ProductSection(
+                                  title: section.title,
+                                  items: section.items,
+                                  cardWidth: cardWidth,
+                                  itemsPerRow: 6,
+                                  ratingsByProduct: ratingsByProduct,
+                                ),
+                              const SizedBox(height: 20),
+                            ],
+                          );
+                        },
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -161,12 +177,14 @@ class _ProductSection extends StatelessWidget {
   final List<Product> items;
   final double cardWidth;
   final int itemsPerRow;
+  final Map<String, ProductRatingSummary> ratingsByProduct;
 
   const _ProductSection({
     required this.title,
     required this.items,
     required this.cardWidth,
     required this.itemsPerRow,
+    required this.ratingsByProduct,
   });
 
   List<List<Product>> _chunk(List<Product> list, int size) {
@@ -193,7 +211,11 @@ class _ProductSection extends StatelessWidget {
           ),
         ),
         for (int rowIndex = 0; rowIndex < rows.length; rowIndex++) ...[
-          _CarouselRow(rowItems: rows[rowIndex], cardWidth: cardWidth),
+          _CarouselRow(
+            rowItems: rows[rowIndex],
+            cardWidth: cardWidth,
+            ratingsByProduct: ratingsByProduct,
+          ),
           const SizedBox(height: 12),
         ],
       ],
@@ -204,8 +226,13 @@ class _ProductSection extends StatelessWidget {
 class _CarouselRow extends StatelessWidget {
   final List<Product> rowItems;
   final double cardWidth;
+  final Map<String, ProductRatingSummary> ratingsByProduct;
 
-  const _CarouselRow({required this.rowItems, required this.cardWidth});
+  const _CarouselRow({
+    required this.rowItems,
+    required this.cardWidth,
+    required this.ratingsByProduct,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +245,9 @@ class _CarouselRow extends StatelessWidget {
         separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final product = rowItems[index];
+          final rating =
+              ratingsByProduct[product.id] ??
+              const ProductRatingSummary.empty();
 
           return SizedBox(
             width: cardWidth,
@@ -225,6 +255,8 @@ class _CarouselRow extends StatelessWidget {
               image: product.image,
               name: product.name,
               price: product.price,
+              averageRating: rating.average,
+              totalReviews: rating.totalReviews,
               onAdd: () {
                 CartData.addProduct(product);
 

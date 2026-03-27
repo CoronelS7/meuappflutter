@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:meu_app_flutter/cores/app_colors.dart';
 import 'package:meu_app_flutter/data/notificacoes_data.dart';
+import 'package:meu_app_flutter/data/product_rating_repository.dart';
 import 'package:meu_app_flutter/data/products_repository.dart';
 import 'package:meu_app_flutter/models/product.dart';
 import 'package:meu_app_flutter/screens/notificacoes_screen.dart';
@@ -19,6 +20,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ProductsRepository _productsRepository = ProductsRepository();
+  final ProductRatingRepository _productRatingRepository =
+      ProductRatingRepository();
 
   static const List<String> _categories = [
     'Lanches',
@@ -95,7 +98,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
 
                   final produtos = _produtosFiltrados(snapshot.data ?? []);
-                  return _buildPopularGrid(produtos);
+                  return StreamBuilder<Map<String, ProductRatingSummary>>(
+                    initialData: const <String, ProductRatingSummary>{},
+                    stream: _productRatingRepository.watchSummariesByProduct(),
+                    builder: (context, ratingSnapshot) {
+                      final summaries = ratingSnapshot.data ?? const {};
+                      return _buildPopularGrid(produtos, summaries);
+                    },
+                  );
                 },
               ),
             ),
@@ -322,7 +332,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPopularGrid(List<Product> products) {
+  Widget _buildPopularGrid(
+    List<Product> products,
+    Map<String, ProductRatingSummary> ratingsByProduct,
+  ) {
     if (products.isEmpty) {
       return _buildStateMessage('Nenhum item encontrado');
     }
@@ -339,9 +352,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         itemBuilder: (context, index) {
           final product = products[index];
+          final rating =
+              ratingsByProduct[product.id] ??
+              const ProductRatingSummary.empty();
 
           return ProductCard(
             product: product,
+            averageRating: rating.average,
+            totalReviews: rating.totalReviews,
             onTap: () {
               Navigator.push(
                 context,

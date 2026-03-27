@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:meu_app_flutter/cores/app_colors.dart';
 import 'package:meu_app_flutter/data/notificacoes_data.dart';
 import 'package:meu_app_flutter/data/pedido_status_data.dart';
+import 'package:meu_app_flutter/data/product_rating_repository.dart';
 
 class PedidoStatusScreen extends StatelessWidget {
   const PedidoStatusScreen({super.key});
@@ -10,6 +11,245 @@ class PedidoStatusScreen extends StatelessWidget {
   String _formatarReais(double value) {
     final fixed = value.toStringAsFixed(2).replaceAll('.', ',');
     return 'R\$ $fixed';
+  }
+
+  Future<NotificationOrderItem?> _selecionarItemParaAvaliacao(
+    BuildContext context,
+    List<NotificationOrderItem> itens,
+  ) async {
+    if (itens.isEmpty) {
+      return null;
+    }
+
+    if (itens.length == 1) {
+      return itens.first;
+    }
+
+    return showDialog<NotificationOrderItem>(
+      context: context,
+      builder: (dialogContext) {
+        return SimpleDialog(
+          title: const Text(
+            'Qual item voce quer avaliar?',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+          ),
+          children: [
+            ...itens.map(
+              (item) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(dialogContext, item),
+                child: Text(
+                  '${item.quantidade}x ${item.nome}',
+                  style: const TextStyle(fontFamily: 'Poppins', fontSize: 14),
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'Pular avaliacao',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: AppColors.gray500,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<_AvaliacaoItemInput?> _solicitarAvaliacaoItem(
+    BuildContext context,
+    NotificationOrderItem item,
+  ) async {
+    final comentarioController = TextEditingController();
+    var estrelas = 0;
+
+    final result = await showDialog<_AvaliacaoItemInput>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Avaliar item',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.gray700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      item.nome,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 14,
+                        color: AppColors.gray600,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        final ativo = index < estrelas;
+                        return IconButton(
+                          splashRadius: 22,
+                          onPressed: () {
+                            setDialogState(() {
+                              estrelas = index + 1;
+                            });
+                          },
+                          icon: Icon(
+                            ativo
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
+                            color: ativo
+                                ? const Color(0xFFF59E0B)
+                                : AppColors.gray300,
+                            size: 34,
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: comentarioController,
+                      minLines: 2,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Comentario opcional',
+                        hintStyle: const TextStyle(fontFamily: 'Poppins'),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppColors.gray300),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: const Text(
+                              'Pular',
+                              style: TextStyle(color: AppColors.gray600),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary300,
+                              disabledBackgroundColor: AppColors.gray300,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: estrelas == 0
+                                ? null
+                                : () => Navigator.pop(
+                                    dialogContext,
+                                    _AvaliacaoItemInput(
+                                      estrelas: estrelas,
+                                      comentario: comentarioController.text,
+                                    ),
+                                  ),
+                            child: const Text(
+                              'Enviar',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    comentarioController.dispose();
+    return result;
+  }
+
+  Future<void> _encerrarComAvaliacao(
+    BuildContext context,
+    NotificationOrderDetail detalhe,
+  ) async {
+    final itemSelecionado = await _selecionarItemParaAvaliacao(
+      context,
+      detalhe.itens,
+    );
+    if (!context.mounted) {
+      return;
+    }
+
+    if (itemSelecionado != null &&
+        itemSelecionado.productId.trim().isNotEmpty) {
+      final avaliacao = await _solicitarAvaliacaoItem(context, itemSelecionado);
+      if (!context.mounted) {
+        return;
+      }
+
+      if (avaliacao != null) {
+        try {
+          await ProductRatingRepository().submitReview(
+            productId: itemSelecionado.productId,
+            productName: itemSelecionado.nome,
+            stars: avaliacao.estrelas,
+            comment: avaliacao.comentario,
+          );
+        } catch (_) {
+          if (!context.mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Nao foi possivel salvar avaliacao.')),
+          );
+        }
+      }
+    }
+
+    PedidoStatusData.encerrarRastreamento();
+    if (context.mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -300,9 +540,8 @@ class PedidoStatusScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary300,
                     ),
-                    onPressed: () {
-                      PedidoStatusData.encerrarRastreamento();
-                      Navigator.pop(context);
+                    onPressed: () async {
+                      await _encerrarComAvaliacao(context, pedido.detalhe);
                     },
                     child: const Text(
                       'Encerrar acompanhamento',
@@ -321,6 +560,13 @@ class PedidoStatusScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AvaliacaoItemInput {
+  final int estrelas;
+  final String comentario;
+
+  const _AvaliacaoItemInput({required this.estrelas, required this.comentario});
 }
 
 class _ResumoPedidoCard extends StatelessWidget {

@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:meu_app_flutter/cores/app_colors.dart";
 import "package:meu_app_flutter/widgets/product_image.dart";
+import "package:meu_app_flutter/widgets/rating_stars_badge.dart";
 
 class ProductCard extends StatelessWidget {
   final String image;
@@ -8,6 +9,8 @@ class ProductCard extends StatelessWidget {
   final String price;
   final VoidCallback onAdd;
   final VoidCallback? onTap;
+  final double averageRating;
+  final int totalReviews;
 
   const ProductCard({
     super.key,
@@ -16,6 +19,8 @@ class ProductCard extends StatelessWidget {
     required this.price,
     required this.onAdd,
     this.onTap,
+    this.averageRating = 0,
+    this.totalReviews = 0,
   });
 
   @override
@@ -65,7 +70,15 @@ class ProductCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: RatingStarsBadge(
+                  average: averageRating,
+                  totalReviews: totalReviews,
+                ),
+              ),
+              const SizedBox(height: 4),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(

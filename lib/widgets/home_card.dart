@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:meu_app_flutter/models/product.dart';
 import 'package:meu_app_flutter/widgets/product_image.dart';
+import 'package:meu_app_flutter/widgets/rating_stars_badge.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback? onTap;
+  final double averageRating;
+  final int totalReviews;
 
   const ProductCard({
     super.key,
     required this.product,
     this.onTap,
+    this.averageRating = 0,
+    this.totalReviews = 0,
   });
 
   @override
@@ -39,6 +44,11 @@ class ProductCard extends StatelessWidget {
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.w600,
               ),
+            ),
+            const SizedBox(height: 2),
+            RatingStarsBadge(
+              average: averageRating,
+              totalReviews: totalReviews,
             ),
           ],
         ),

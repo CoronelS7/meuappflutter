@@ -17,12 +17,14 @@ class AppNotification {
 }
 
 class NotificationOrderItem {
+  final String productId;
   final String nome;
   final String imagem;
   final int quantidade;
   final double precoUnitario;
 
   const NotificationOrderItem({
+    required this.productId,
     required this.nome,
     required this.imagem,
     required this.quantidade,

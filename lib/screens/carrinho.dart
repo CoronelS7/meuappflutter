@@ -128,6 +128,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
     return CartData.items
         .map(
           (item) => NotificationOrderItem(
+            productId: item.product.id,
             nome: item.product.name,
             imagem: item.product.image,
             quantidade: item.quantity,
