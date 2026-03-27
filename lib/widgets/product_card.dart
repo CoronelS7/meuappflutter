@@ -11,6 +11,13 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onTap;
   final double averageRating;
   final int totalReviews;
+  final double imageHeight;
+  final EdgeInsetsGeometry margin;
+  final EdgeInsetsGeometry contentPadding;
+  final double titleFontSize;
+  final double priceFontSize;
+  final double buttonFontSize;
+  final EdgeInsetsGeometry buttonPadding;
 
   const ProductCard({
     super.key,
@@ -21,6 +28,13 @@ class ProductCard extends StatelessWidget {
     this.onTap,
     this.averageRating = 0,
     this.totalReviews = 0,
+    this.imageHeight = 160,
+    this.margin = const EdgeInsets.symmetric(vertical: 8),
+    this.contentPadding = const EdgeInsets.symmetric(horizontal: 12),
+    this.titleFontSize = 16,
+    this.priceFontSize = 14,
+    this.buttonFontSize = 16,
+    this.buttonPadding = const EdgeInsets.symmetric(vertical: 10),
   });
 
   @override
@@ -31,7 +45,7 @@ class ProductCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
+          margin: margin,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -53,26 +67,26 @@ class ProductCard extends StatelessWidget {
                 child: ProductImage(
                   image: image,
                   width: double.infinity,
-                  height: 160,
+                  height: imageHeight,
                   fit: BoxFit.cover,
                 ),
               ),
               const SizedBox(height: 10),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: contentPadding,
                 child: Text(
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: titleFontSize,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
               const SizedBox(height: 4),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: contentPadding,
                 child: RatingStarsBadge(
                   average: averageRating,
                   totalReviews: totalReviews,
@@ -80,11 +94,11 @@ class ProductCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: contentPadding,
                 child: Text(
                   price,
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: TextStyle(
+                    fontSize: priceFontSize,
                     fontWeight: FontWeight.w700,
                     color: Colors.black,
                   ),
@@ -100,15 +114,15 @@ class ProductCard extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary300,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: buttonPadding,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       "Adicionar",
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: buttonFontSize,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

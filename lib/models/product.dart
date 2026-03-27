@@ -1,6 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diacritic/diacritic.dart';
 
+class ProductAdditional {
+  final String name;
+  final String price;
+
+  const ProductAdditional({required this.name, required this.price});
+
+  factory ProductAdditional.fromMap(Map<String, dynamic> data) {
+    return ProductAdditional(
+      name: (data['name'] as String? ?? '').trim(),
+      price: Product.formatPrice(data['price']),
+    );
+  }
+}
+
 class Product {
   final String id;
   final String image;
@@ -12,6 +26,7 @@ class Product {
   final bool available;
   final bool featured;
   final bool promotion;
+  final List<ProductAdditional> additionals;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -26,6 +41,7 @@ class Product {
     this.available = true,
     this.featured = false,
     this.promotion = false,
+    this.additionals = const [],
     this.createdAt,
     this.updatedAt,
   });
@@ -37,13 +53,14 @@ class Product {
       id: doc.id,
       image: (data['image'] as String? ?? '').trim(),
       name: (data['name'] as String? ?? '').trim(),
-      price: _formatPrice(data['price']),
+      price: formatPrice(data['price']),
       description: (data['description'] as String? ?? '').trim(),
       category: (data['category'] as String? ?? '').trim(),
       status: (data['status'] as String? ?? '').trim(),
       available: data['available'] as bool? ?? true,
       featured: data['featured'] as bool? ?? false,
       promotion: data['promotion'] as bool? ?? false,
+      additionals: _parseAdditionals(data['additionals']),
       createdAt: _timestampToDateTime(data['createdAt']),
       updatedAt: _timestampToDateTime(data['updatedAt']),
     );
@@ -127,24 +144,43 @@ class Product {
     return removeDiacritics(value).toLowerCase().trim();
   }
 
-  static String _formatPrice(dynamic value) {
-    double priceValue;
+  static String formatPrice(dynamic value) {
+    final priceValue = parsePrice(value);
+    return 'R\$ ${priceValue.toStringAsFixed(2).replaceAll('.', ',')}';
+  }
 
+  static double parsePrice(dynamic value) {
     if (value is num) {
-      priceValue = value.toDouble();
-    } else if (value is String) {
+      return value.toDouble();
+    }
+
+    if (value is String) {
       var normalized = value.replaceAll('R\$', '').replaceAll(' ', '');
       if (normalized.contains(',') && normalized.contains('.')) {
         normalized = normalized.replaceAll('.', '').replaceAll(',', '.');
       } else if (normalized.contains(',')) {
         normalized = normalized.replaceAll(',', '.');
       }
-      priceValue = double.tryParse(normalized) ?? 0;
-    } else {
-      priceValue = 0;
+      return double.tryParse(normalized) ?? 0;
     }
 
-    return 'R\$ ${priceValue.toStringAsFixed(2).replaceAll('.', ',')}';
+    return 0;
+  }
+
+  static List<ProductAdditional> _parseAdditionals(dynamic value) {
+    if (value is! List) {
+      return const [];
+    }
+
+    return value
+        .whereType<Map>()
+        .map(
+          (item) => ProductAdditional.fromMap(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+        .where((item) => item.name.isNotEmpty)
+        .toList();
   }
 
   static DateTime? _timestampToDateTime(dynamic value) {

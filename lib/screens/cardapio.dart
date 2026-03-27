@@ -110,9 +110,11 @@ class CardapioScreen extends StatelessWidget {
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final width = constraints.maxWidth;
-                          final double cardWidth = width < 800
-                              ? width * 0.5
-                              : 280;
+                          final double cardWidth = width < 480
+                              ? width * 0.44
+                              : width < 800
+                              ? width * 0.38
+                              : 250;
 
                           final sections = _sections
                               .map(
@@ -237,7 +239,7 @@ class _CarouselRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 320,
+      height: 306,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -257,6 +259,13 @@ class _CarouselRow extends StatelessWidget {
               price: product.price,
               averageRating: rating.average,
               totalReviews: rating.totalReviews,
+              imageHeight: 146,
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+              titleFontSize: 15,
+              priceFontSize: 13,
+              buttonFontSize: 15,
+              buttonPadding: const EdgeInsets.symmetric(vertical: 9),
               onAdd: () {
                 CartData.addProduct(product);
 

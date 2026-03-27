@@ -10,6 +10,7 @@ import 'package:meu_app_flutter/data/cart_data.dart';
 import 'package:meu_app_flutter/data/endereco_usuario_data.dart';
 import 'package:meu_app_flutter/data/notificacoes_data.dart';
 import 'package:meu_app_flutter/data/pedido_status_data.dart';
+import 'package:meu_app_flutter/models/product.dart';
 import 'package:meu_app_flutter/screens/enderecos_screen.dart';
 import 'package:meu_app_flutter/screens/login.dart';
 import 'package:meu_app_flutter/screens/main_navigation.dart';
@@ -68,19 +69,10 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
     super.dispose();
   }
 
-  double _parsePrice(String priceText) {
-    final cleaned = priceText
-        .replaceAll('R\$', '')
-        .replaceAll(' ', '')
-        .replaceAll('.', '')
-        .replaceAll(',', '.');
-    return double.tryParse(cleaned) ?? 0.0;
-  }
-
   double get _total {
     var sum = 0.0;
     for (final item in CartData.items) {
-      sum += _parsePrice(item.product.price) * item.quantity;
+      sum += item.unitPrice * item.quantity;
     }
     return sum;
   }
@@ -88,8 +80,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
   int get _amountInCents => (_total * 100).round();
 
   String _formatBRL(double value) {
-    final fixed = value.toStringAsFixed(2).replaceAll('.', ',');
-    return 'R\$ $fixed';
+    return Product.formatPrice(value);
   }
 
   String get _metodoPagamentoTexto {
@@ -129,10 +120,10 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
         .map(
           (item) => NotificationOrderItem(
             productId: item.product.id,
-            nome: item.product.name,
+            nome: item.displayName,
             imagem: item.product.image,
             quantidade: item.quantity,
-            precoUnitario: _parsePrice(item.product.price),
+            precoUnitario: item.unitPrice,
           ),
         )
         .toList(growable: false);
@@ -964,11 +955,17 @@ class _CartItemWidgetState extends State<CartItemWidget> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+    final hasExtraInfo = item.hasAdditionals || item.hasComment;
+    final cardHeight = item.hasAdditionals && item.hasComment
+        ? 142.0
+        : hasExtraInfo
+        ? 120.0
+        : 90.0;
 
     return Stack(
       children: [
         Container(
-          height: 90,
+          height: cardHeight,
           decoration: BoxDecoration(
             color: Colors.red.shade400,
             borderRadius: BorderRadius.circular(14),
@@ -999,6 +996,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
             duration: const Duration(milliseconds: 200),
             transform: Matrix4.translationValues(offset, 0, 0),
             child: Container(
+              height: cardHeight,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -1036,9 +1034,37 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        if (item.hasAdditionals) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            item.additionalsLabel,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              color: AppColors.gray500,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                        if (item.hasComment) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Obs: ${item.comment}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              color: AppColors.gray500,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 6),
                         Text(
-                          item.product.price,
+                          item.unitPriceText,
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             color: AppColors.gray700,
